@@ -1,8 +1,6 @@
-
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-require('dotenv').config();
-
 const app = express();
 
 const API_KEY = process.env.API_KEY;
@@ -30,4 +28,4 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
-module.exports = app;
+app.listen(3000, () => console.log('Server running on port 3000'));
