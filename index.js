@@ -21,10 +21,10 @@ app.get('/auth/callback', async (req, res) => {
 
     // Save access_token securely (e.g., database)
 
-    res.send('Shop connected successfully!');
+    return res.json({ "accesstoken":access_token });
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Token exchange failed');
+    console.error(err.message);
+    res.status(500).send('Token exchange failed',err.message);
   }
 });
 
