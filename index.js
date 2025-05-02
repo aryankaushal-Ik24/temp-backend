@@ -2,16 +2,17 @@ require('dotenv').config();
 const express = require('express');
 const clientRoutes = require('./routes/clientRoutes');
 const { connectToDatabase } = require('./DB/database');
-const { handleAuthCallback } = require('./controllers/ClientController');
+const { handleAuthCallback, getClientDetails } = require('./controllers/ClientController');
 const app = express();
 
+app.use(express.json())
 
 app.get('/',async(_,res)=>{
   return res.send('ok tested');
 })
 
 app.get('/auth/callback',handleAuthCallback);
-
+app.get('/user/get-details',getClientDetails);
 
 connectToDatabase()
 .then(()=>{
