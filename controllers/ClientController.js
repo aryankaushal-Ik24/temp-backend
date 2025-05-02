@@ -3,12 +3,13 @@ const Client = require('../models/Client');
 
 const API_KEY = process.env.API_KEY
 const API_SECRET = process.env.API_SECRET
-const FRONTEND_URL = process.env.FORNTEND_URI
+const FRONTEND_URL = process.env.FRONTEND_URL
 
 
 
 const handleAuthCallback = async (req, res) => {
     const { code, shop } = req.query;
+    console.log("Redirecting to:", FRONTEND_URL);
 
     if (!code || !shop) {
         return res.status(400).send('Missing code or shop parameter.');
@@ -39,8 +40,7 @@ const handleAuthCallback = async (req, res) => {
                 message:"Can't create client please try again"
             })
         }
-        const redirectUrl = FRONTEND_URL;
-        return res.redirect(redirectUrl);
+        return res.redirect(FRONTEND_URL);
 
     } catch (error) {
         console.error('Error during auth callback:', error?.response?.data || error.message);
