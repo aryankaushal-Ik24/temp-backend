@@ -52,7 +52,7 @@ const handleAuthCallback = async (req, res) => {
 
 
 const getClientDetails = async (req,res) => {
-    const {shopName} = req.body;
+    const { shopName } = req.query;
     if(!shopName){
         return res.status(400).json({
             success:false,
