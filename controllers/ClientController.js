@@ -1,9 +1,12 @@
 const axios = require('axios');
-// Environment variables for API credentials
-API_KEY = 'd58d81c5f8fa4c477cda2118c4ea0c2d';
-API_SECRET = '84dba585c5561f7c46b348c0598c054a';
+const Client = require('../models/Client');
 
-// Controller for handling Shopify OAuth callback
+const API_KEY = process.env.API_KEY
+const API_SECRET = process.env.API_SECRET
+const FRONTEND_URL = process.env.FORNTEND_URI
+
+
+
 const handleAuthCallback = async (req, res) => {
     const { code, shop } = req.query;
 
@@ -12,7 +15,7 @@ const handleAuthCallback = async (req, res) => {
     }
 
     try {
-        // Step 1: Exchange code for access token
+        
         const tokenResponse = await axios.post(`https://${shop}/admin/oauth/access_token`, {
             client_id: API_KEY,
             client_secret: API_SECRET,
@@ -20,17 +23,30 @@ const handleAuthCallback = async (req, res) => {
         });
 
         const accessToken = tokenResponse.data.access_token;
-        console.log('Access Token:', accessToken);
-        return res.status(201).json({
+        if(!accessToken){
+            return res.status(403).json({
+                success:false,
+                message:"access not found please try again"
+            })
+        }
+        const createClient = await Client.create({
             shopName:shop,
-            accessToken:accessToken
+            accessToken:accessToken,
         })
+        if(!createClient){
+            return res.status(401).json({
+                success:false,
+                message:"Can't create client please try again"
+            })
+        }
+        const redirectUrl = FRONTEND_URL;
+        return res.redirect(redirectUrl);
 
     } catch (error) {
         console.error('Error during auth callback:', error?.response?.data || error.message);
         return res.status(500).send('Token exchange or product fetch failed.');
     }
-};
+}
 
 module.exports = {
     handleAuthCallback,
