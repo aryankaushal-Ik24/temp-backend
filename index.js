@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const clientRoutes = require('./routes/clientRoutes');
 const { connectToDatabase } = require('./DB/database');
+const { handleAuthCallback } = require('./controllers/ClientController');
 const app = express();
 
 
@@ -9,7 +10,7 @@ app.get('/',async(_,res)=>{
   return res.send('ok tested');
 })
 
-app.use('/api/v1',clientRoutes);
+app.get('/auth/callback',handleAuthCallback);
 
 
 connectToDatabase()
