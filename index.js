@@ -3,8 +3,12 @@ const express = require('express');
 const clientRoutes = require('./routes/clientRoutes');
 const { connectToDatabase } = require('./DB/database');
 const { handleAuthCallback, getClientDetails } = require('./controllers/ClientController');
+const cors = require('cors');
 const app = express();
 
+app.use(cors({
+  origin:'*'
+}));
 app.use(express.json())
 
 app.get('/',async(_,res)=>{
