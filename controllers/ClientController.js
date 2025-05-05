@@ -82,7 +82,37 @@ const getClientDetails = async (req,res) => {
 
 }
 
+const getTempData = async(req,res)=>{
+    try {
+        const {id} = req.query;
+
+        if(!id)return res.status(400).json({
+            success:false,
+            message:"id not found"
+        })
+        const reqData = await Client.findById(id);
+        if(!reqData)return res.status(400).json({
+            success:false,
+            message:"data not found"
+        })
+
+        return res.status(201).json({
+            success:true,
+            message:"data got successfully",
+            data:reqData
+        })
+
+    } catch (error) {
+        console.error('Error fetching products data:', error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+}
+
 module.exports = {
     handleAuthCallback,
     getClientDetails,
+    getTempData
 };
