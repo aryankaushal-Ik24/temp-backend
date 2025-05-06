@@ -4,6 +4,7 @@ const clientRoutes = require('./routes/clientRoutes');
 const { connectToDatabase } = require('./DB/database');
 const { handleAuthCallback, getClientDetails, getTempData } = require('./controllers/ClientController');
 const cors = require('cors');
+const { addSelectedSceneWithProduct } = require('./controllers/ProductController');
 const app = express();
 
 app.use(cors({
@@ -20,7 +21,10 @@ app.get('/',async(_,res)=>{
 
 app.get('/auth/callback',handleAuthCallback);
 app.get('/user/get-details',getClientDetails);
-app.get('/product/getData',getTempData);
+app.get('/product/getData',getTempData);  //fake data
+
+app.post('/product/add-product',addSelectedSceneWithProduct);
+
 
 connectToDatabase()
 .then(()=>{
