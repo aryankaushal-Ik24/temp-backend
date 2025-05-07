@@ -29,7 +29,7 @@ app.post('/product/add-product',addSelectedSceneWithProduct);
 connectToDatabase()
 .then(()=>{
   console.log("mongodb connected and lets listen a server")
-  app.listen(3000, () => console.log('Server running on port 3000'));
+  app.listen(3001, () => console.log('Server running on port 3001'));
 })
 .catch((error)=>{
   console.log("error occured while connecting to mongodb",error.message)

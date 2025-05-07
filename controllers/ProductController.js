@@ -4,8 +4,8 @@ const Product = require('../models/Product');
 
 const addSelectedSceneWithProduct = async(req,res)=>{
     try {
-        const {orgId,directoryId,sceneId,shopifyProductId,handleName} = req.body;
-        if(!orgId ||!directoryId || !sceneId | !shopifyProductId || !handleName ) return res.status(400).json({
+        const {orgId,directoryId,sceneId,shopifyProductId,handleName,options} = req.body;
+        if(!orgId ||!directoryId || !sceneId | !shopifyProductId || !handleName || !options ) return res.status(400).json({
             success:false,
             message:"missing fields"
         })
@@ -20,6 +20,7 @@ const addSelectedSceneWithProduct = async(req,res)=>{
             sceneId: sceneId,
             shopifyProductId: shopifyProductId,
             handleName: handleName,
+            options:options
         });
         await addProduct.save();
         if(!addProduct) return res.status(400).json({

@@ -32,25 +32,21 @@ const productSchema = new mongoose.Schema({
                 type: String,
                 trim: true,
             },
-            optionType: {
-                type: String,
-                enum: ['material', 'model'],
-            },
-            masterLabelName: {
+            labelName: {
                 type: String,
                 trim: true,
             },
             optionValues: [
                 {
-                    sOptionValueName: {
+                    shopifyValue: {
                         type: String,
                         trim: true,
                     },
-                    mOptionValueName: {
+                    optionLabel: {
                         type: String,
                         trim: true,
                     },
-                    optionValueId: {
+                    id: {
                         type: String,
                         trim: true,
                     },
