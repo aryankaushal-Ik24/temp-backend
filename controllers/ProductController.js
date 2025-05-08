@@ -38,12 +38,12 @@ const addSelectedSceneWithProduct = async(req,res)=>{
 
 const getProductInformation = async(req,res)=>{
     try {
-        const {productId} = req.query;
-        if(!productId) return res.status(400).json({
+        const {shopifyId} = req.query;
+        if(!shopifyId) return res.status(400).json({
             success:false,
             message:"product id not found"
         });
-        const findProduct = await Product.findOne({shopifyProductId:productId});
+        const findProduct = await Product.findOne({shopifyProductId:shopifyId});
         if(!findProduct) return res.status(400).json({
             success:false,
             message:"product not found"
