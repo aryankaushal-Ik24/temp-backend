@@ -36,4 +36,29 @@ const addSelectedSceneWithProduct = async(req,res)=>{
     }
 }
 
-module.exports = {addSelectedSceneWithProduct}
+const getProductInformation = async(req,res)=>{
+    try {
+        const {productId} = req.query;
+        if(!productId) return res.status(400).json({
+            success:false,
+            message:"product id not found"
+        });
+        const findProduct = await Product.findOne({shopifyProductId:productId});
+        if(!findProduct) return res.status(400).json({
+            success:false,
+            message:"product not found"
+        })
+        return res.status(200).json({
+            success:true,
+            message:"product found successfully",
+            data:findProduct
+        })
+    } catch (error) {
+        console.log("error occured while finding product");
+        return res.status(500).json({
+            success:false,
+            message:error.message
+        })
+    }
+}
+module.exports = {addSelectedSceneWithProduct,getProductInformation}
