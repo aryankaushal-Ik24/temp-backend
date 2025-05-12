@@ -73,7 +73,7 @@ const handleAuthCallback = async (req, res) => {
     let accessToken;
 
     // Check if access token is already saved
-    const existingClient = await Client.findOne({ shop: shopDomain });
+    const existingClient = await Client.findOne({ shopName: shopDomain });
     if (existingClient?.accessToken) {
       accessToken = existingClient.accessToken;
     } else {
@@ -91,7 +91,7 @@ const handleAuthCallback = async (req, res) => {
       accessToken = tokenResponse.data.access_token;
 
       // Save to DB (optional)
-      await Client.create({ shop: shopDomain, accessToken });
+      await Client.create({ shopName: shopDomain, accessToken });
     }
 
     // Fetch products
