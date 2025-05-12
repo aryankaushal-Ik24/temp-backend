@@ -104,6 +104,8 @@ const handleAuthCallback = async (req, res) => {
 
     const products = productResponse.data.products || [];
 
+    console.log('Fetched Products:', products);
+
     // Store products in temporary session store
     const sessionId = uuidv4();
     sessionStore.set(sessionId, products);
