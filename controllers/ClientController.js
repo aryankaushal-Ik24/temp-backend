@@ -53,10 +53,6 @@ const FRONTEND_URL = process.env.FRONTEND_URL
 
 
 
-
-
-// TEMP store (replace with Redis in production)
-
 const sessionStore = new Map();
 const { v4: uuidv4 } = require('uuid'); 
 
@@ -106,20 +102,9 @@ const handleAuthCallback = async (req, res) => {
 
     console.log('Fetched Products:', products);
 
-    // Store products in temporary session store
-    const sessionId = uuidv4();
-    sessionStore.set(sessionId, products);
+ // On backend
+    return res.redirect(`${FRONTEND_URL}/auth-done?shop=${shop}&data=${encodeURIComponent(JSON.stringify(products))}`);
 
-    // Set cookie for frontend access
-    res.cookie('session_id', sessionId, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'Lax',
-      maxAge: 5 * 60 * 1000,
-    });
-
-    // Redirect back to frontend
-    return res.redirect(FRONTEND_URL);
   } catch (error) {
     console.error('Auth Callback Error:', error.response?.data || error.message);
     return res.status(500).json({
