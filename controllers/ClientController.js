@@ -101,10 +101,10 @@ const handleAuthCallback = async (req, res) => {
     const products = productResponse.data.products || [];
 
     console.log('Fetched Products again');
-    console.log(`${FRONTEND_URL}/authDone?shop=${shop}&data=${encodeURIComponent(JSON.stringify(products))}`)
+    // console.log(`${FRONTEND_URL}/authDone?shop=${shop}&data=${encodeURIComponent(JSON.stringify(products))}`)
 
  // On backend
-    return res.redirect(`${FRONTEND_URL}/authDone?shop=${shop}&data=${encodeURIComponent(JSON.stringify(products))}`);
+    return res.redirect(`${FRONTEND_URL}/authDone`);
 
   } catch (error) {
     console.error('Auth Callback Error:', error.response?.data || error.message);
