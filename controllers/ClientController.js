@@ -7,48 +7,138 @@ const FRONTEND_URL = process.env.FRONTEND_URL
 
 
 
+// const handleAuthCallback = async (req, res) => {
+//     const { code, shop } = req.query;
+//     console.log("Redirecting to:", FRONTEND_URL);
+//     if (!code || !shop) {
+//         return res.status(400).send('Missing code or shop parameter.');
+//     }
+
+//     try {
+//         const client = await Client.findOne({ shop });
+//         if(client){
+//             return res.redirect(FRONTEND_URL);
+//         }
+//         const tokenResponse = await axios.post(`https://${shop}/admin/oauth/access_token`, {
+//             client_id: API_KEY,
+//             client_secret: API_SECRET,
+//             code,
+//         });
+
+//         const accessToken = tokenResponse.data.access_token;
+//         console.log("Access Token:", accessToken);
+//         if(!accessToken){
+//             return res.status(403).json({
+//                 success:false,
+//                 message:"access not found please try again"
+//             })
+//         }
+//         const createClient = await Client.create({
+//             shopName:shop,
+//             accessToken:accessToken,
+//         })
+//         if(!createClient){
+//             return res.status(401).json({
+//                 success:false,
+//                 message:"Can't create client please try again"
+//             })
+//         }
+//         return res.redirect(FRONTEND_URL);
+
+//     } catch (error) {
+//         console.error('Error during auth callback:', error?.response?.data || error.message);
+//         return res.status(500).send('Token exchange or product fetch failed.');
+//     }
+// }
+
+
+
+
+
+// TEMP store (replace with Redis in production)
+
+const sessionStore = new Map();
+const { v4: uuidv4 } = require('uuid'); 
+
 const handleAuthCallback = async (req, res) => {
-    const { code, shop } = req.query;
-    console.log("Redirecting to:", FRONTEND_URL);
-    if (!code || !shop) {
-        return res.status(400).send('Missing code or shop parameter.');
+  const { code, shop } = req.query;
+
+  if (!shop || !code) {
+    return res.status(400).send('Missing code or shop parameter.');
+  }
+
+  const shopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`;
+
+  try {
+    let accessToken;
+
+    // Check if access token is already saved
+    const existingClient = await Client.findOne({ shop: shopDomain });
+    if (existingClient?.accessToken) {
+      accessToken = existingClient.accessToken;
+    } else {
+      // Get access token from Shopify
+      const tokenResponse = await axios.post(`https://${shopDomain}/admin/oauth/access_token`, {
+        client_id: API_KEY,
+        client_secret: API_SECRET,
+        code,
+      });
+
+      if (!tokenResponse.data.access_token) {
+        return res.status(403).json({ success: false, message: 'Access token not received.' });
+      }
+
+      accessToken = tokenResponse.data.access_token;
+
+      // Save to DB (optional)
+      await Client.create({ shop: shopDomain, accessToken });
     }
 
-    try {
-        const client = await Client.findOne({ shop });
-        if(client){
-            return res.redirect(FRONTEND_URL);
-        }
-        const tokenResponse = await axios.post(`https://${shop}/admin/oauth/access_token`, {
-            client_id: API_KEY,
-            client_secret: API_SECRET,
-            code,
-        });
+    // Fetch products
+    const productResponse = await axios.get(`https://${shopDomain}/admin/api/2024-01/products.json`, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+    });
 
-        const accessToken = tokenResponse.data.access_token;
-        if(!accessToken){
-            return res.status(403).json({
-                success:false,
-                message:"access not found please try again"
-            })
-        }
-        const createClient = await Client.create({
-            shopName:shop,
-            accessToken:accessToken,
-        })
-        if(!createClient){
-            return res.status(401).json({
-                success:false,
-                message:"Can't create client please try again"
-            })
-        }
-        return res.redirect(FRONTEND_URL);
+    const products = productResponse.data.products || [];
 
-    } catch (error) {
-        console.error('Error during auth callback:', error?.response?.data || error.message);
-        return res.status(500).send('Token exchange or product fetch failed.');
-    }
-}
+    // Store products in temporary session store
+    const sessionId = uuidv4();
+    sessionStore.set(sessionId, products);
+
+    // Set cookie for frontend access
+    res.cookie('session_id', sessionId, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax',
+      maxAge: 5 * 60 * 1000,
+    });
+
+    // Redirect back to frontend
+    return res.redirect(FRONTEND_URL);
+  } catch (error) {
+    console.error('Auth Callback Error:', error.response?.data || error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to authenticate and fetch products',
+      details: error.response?.data || error.message,
+    });
+  }
+};
+
+const getClientProducts = (req, res) => {
+  const sessionId = req.cookies.session_id;
+  if (!sessionId || !sessionStore.has(sessionId)) {
+    return res.status(401).json({ success: false, message: 'Session expired or invalid.' });
+  }
+
+  const products = sessionStore.get(sessionId);
+  sessionStore.delete(sessionId); // one-time use (optional)
+
+  return res.json({ success: true, products });
+};
 
 
 const getClientDetails = async (req,res) => {
@@ -82,6 +172,7 @@ const getClientDetails = async (req,res) => {
 
 }
 
+
 const getTempData = async(req,res)=>{
     try {
         const {id} = req.query;
@@ -114,5 +205,6 @@ const getTempData = async(req,res)=>{
 module.exports = {
     handleAuthCallback,
     getClientDetails,
-    getTempData
+    getTempData,
+    getClientProducts
 };
