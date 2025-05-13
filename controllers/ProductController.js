@@ -9,7 +9,7 @@ const addSelectedSceneWithProduct = async(req,res)=>{
             success:false,
             message:"missing fields"
         })
-        const checkExisting = await Product.findOne({$or:[{orgId:orgId},{directoryId:directoryId},{sceneId:sceneId}, {shopifyProductId:shopifyProductId}]});
+        const checkExisting = await Product.findOne({shopifyProductId:shopifyProductId});
         if(checkExisting) return res.status(400).json({
             success:false,
             message:"product already added kindly just map the variations"
