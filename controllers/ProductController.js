@@ -64,12 +64,12 @@ const getProductInformation = async(req,res)=>{
 
 const updateOptions = async (req,res)=>{
     try {
-        const {shopifyId,options} = req.body;
-        if(!shopifyId || !options) return res.status(400).json({
+        const {id,options} = req.body;
+        if(!id || !options) return res.status(400).json({
             success:false,
             message:"missing data"
         })
-        const updateProduct = await Product.findOneAndUpdate({shopifyProductId:shopifyId},{$set:{options:options}},{new:true});
+        const updateProduct = await Product.findOneAndUpdate({shopifyProductId:id},{$set:{options:options}},{new:true});
         if(!updateProduct) return res.status(400).json({
             success:false,
             message:"product not found"
