@@ -3,7 +3,7 @@ const express = require('express');
 const { connectToDatabase } = require('./DB/database');
 const { handleAuthCallback, getClientDetails, getTempData, getClientProducts } = require('./controllers/ClientController');
 const cors = require('cors');
-const { addSelectedSceneWithProduct, getProductInformation } = require('./controllers/ProductController');
+const { addSelectedSceneWithProduct, getProductInformation, updateOptions } = require('./controllers/ProductController');
 const app = express();
 
 app.use(cors({
@@ -25,6 +25,7 @@ app.get('/user/get-product-details',getClientProducts);
 
 app.post('/product/add-product',addSelectedSceneWithProduct);
 app.get('/product/get-product',getProductInformation);
+app.post('/product/updateOptions',updateOptions);
 
 
 connectToDatabase()

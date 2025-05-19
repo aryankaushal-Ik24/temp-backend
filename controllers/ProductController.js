@@ -61,4 +61,30 @@ const getProductInformation = async(req,res)=>{
         })
     }
 }
-module.exports = {addSelectedSceneWithProduct,getProductInformation}
+
+const updateOptions = async (req,res)=>{
+    try {
+        const {shopifyId,options} = req.body;
+        if(!shopifyId || !options) return res.status(400).json({
+            success:false,
+            message:"missing data"
+        })
+        const updateProduct = await Product.findOneAndUpdate({shopifyProductId:shopifyId},{$set:{options:options}},{new:true});
+        if(!updateProduct) return res.status(400).json({
+            success:false,
+            message:"product not found"
+        })
+        return res.status(200).json({
+            success:true,
+            message:"product updated successfully",
+        })
+        
+    } catch (error) {
+        console.log("error occured while updating product");
+        return res.status(500).json({
+            success:false,
+            message:error.message
+        })
+    }
+}
+module.exports = {addSelectedSceneWithProduct,getProductInformation, updateOptions}
