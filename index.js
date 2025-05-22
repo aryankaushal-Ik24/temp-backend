@@ -21,7 +21,7 @@ app.get('/',async(_,res)=>{
 app.get('/auth/callback',handleAuthCallback);
 app.get('/user/get-details',getClientDetails);
 app.get('/user/get-product-details',getClientProducts);
-// app.get('/product/getData',getTempData);  //fake data
+app.get('/product/getData',getTempData);  //fake data
 
 app.post('/product/add-product',addSelectedSceneWithProduct);
 app.get('/product/get-product',getProductInformation);
