@@ -87,4 +87,5 @@ const updateOptions = async (req,res)=>{
         })
     }
 }
+
 module.exports = {addSelectedSceneWithProduct,getProductInformation, updateOptions}

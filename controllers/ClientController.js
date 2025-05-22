@@ -57,9 +57,9 @@ const sessionStore = new Map();
 const { v4: uuidv4 } = require('uuid'); 
 
 const handleAuthCallback = async (req, res) => {
-  const { code, shop } = req.query;
+  const { code, shop,state } = req.query;
 
-  if (!shop || !code) {
+  if (!shop || !code ) {
     return res.status(400).send('Missing code or shop parameter.');
   }
 
@@ -107,7 +107,7 @@ const handleAuthCallback = async (req, res) => {
     options: product.options
     }));
 
-    return res.redirect(`${FRONTEND_URL}/authDone?shop=${shop}&data=${encodeURIComponent(JSON.stringify(cleanedProducts))}`);
+    return res.redirect(`${state}/authDone?shop=${shop}&data=${encodeURIComponent(JSON.stringify(cleanedProducts))}`);
 
 
   } catch (error) {
