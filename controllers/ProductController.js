@@ -88,4 +88,29 @@ const updateOptions = async (req,res)=>{
     }
 }
 
-module.exports = {addSelectedSceneWithProduct,getProductInformation, updateOptions}
+const deleteProductMapping = async(req,res)=>{
+    try {
+        const {shopifyId} = req.query;
+        if(!shopifyId) return res.status(400).json({
+            success:false,
+            message:"product id not found"
+        });
+        const deleteProduct = await Product.findOneAndDelete({shopifyProductId:shopifyId});
+        if(!deleteProduct) return res.status(400).json({
+            success:false,
+            message:"product not found"
+        })
+        return res.status(200).json({
+            success:true,
+            message:"product deleted successfully",
+        })
+    } catch (error) {
+        console.log("error occured while deleting product");
+        return res.status(500).json({
+            success:false,
+            message:error.message
+        })
+    }
+}
+
+module.exports = {addSelectedSceneWithProduct,getProductInformation, updateOptions,deleteProductMapping}
