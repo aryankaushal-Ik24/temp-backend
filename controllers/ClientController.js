@@ -104,7 +104,10 @@ const handleAuthCallback = async (req, res) => {
     id: product.id,
     title: product.title,
     handle: product.handle,
-    options: product.options
+    options: product.options,
+    created_at:product.created_at,
+    updated_at:product.updated_at
+
     }));
 
     return res.redirect(`${FRONTEND_URL}/authDone?shop=${shop}&data=${encodeURIComponent(JSON.stringify(cleanedProducts))}&state=${state}`);
