@@ -117,7 +117,7 @@ const deleteProductMapping = async(req,res)=>{
 const getProductsToUploadOnShop = async(req,res)=>{
     try {
     const products = req.body; // Expecting array of product objects
-    const accessToken = req.cookies.shopify_session; // Or: req.headers.authorization
+    const accessToken = req.headers.authorization?.split(' ')[1];; // Or: req.headers.authorization
     const shop = 'aryan-ka-store008.myshopify.com' // Or: req.headers['x-shopify-shop']
 
     if (!accessToken || !shop) {
