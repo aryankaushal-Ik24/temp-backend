@@ -90,27 +90,28 @@ const handleAuthCallback = async (req, res) => {
       await Client.create({ shopName: shopDomain, accessToken });
     }
 
-    // Fetch products
-    const productResponse = await axios.get(`https://${shopDomain}/admin/api/2024-01/products.json`, {
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json',
-      },
-    });
+    // // Fetch products
+    // const productResponse = await axios.get(`https://${shopDomain}/admin/api/2024-01/products.json`, {
+    //   headers: {
+    //     'X-Shopify-Access-Token': accessToken,
+    //     'Content-Type': 'application/json',
+    //   },
+    // });
 
-    const products = productResponse.data.products || [];
+    // const products = productResponse.data.products || [];
 
-    const cleanedProducts = products.map(product => ({
-    id: product.id,
-    title: product.title,
-    handle: product.handle,
-    options: product.options,
-    created_at:product.created_at,
-    updated_at:product.updated_at
+    // const cleanedProducts = products.map(product => ({
+    // id: product.id,
+    // title: product.title,
+    // handle: product.handle,
+    // options: product.options,
+    // created_at:product.created_at,
+    // updated_at:product.updated_at
 
-    }));
+    // }));
 
-    return res.redirect(`${FRONTEND_URL}/authDone?shop=${shop}&data=${encodeURIComponent(JSON.stringify(cleanedProducts))}&state=${state}`);
+    // return res.redirect(`${FRONTEND_URL}/authDone?shop=${shop}&data=${encodeURIComponent(JSON.stringify(cleanedProducts))}&state=${state}`);
+    return res.redirect(`${FRONTEND_URL}/authDone?shop=${shop}&state=${state}&access_token=${accessToken}`);
 
 
   } catch (error) {
