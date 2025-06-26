@@ -113,4 +113,50 @@ const deleteProductMapping = async(req,res)=>{
     }
 }
 
-module.exports = {addSelectedSceneWithProduct,getProductInformation, updateOptions,deleteProductMapping}
+
+const getProductsToUploadOnShop = async(req,res)=>{
+    try {
+    const products = req.body; // Expecting array of product objects
+    const accessToken = req.cookies['shopify_session']; // Or: req.headers.authorization
+    const shop = 'aryan-ka-store008.myshopify.com' // Or: req.headers['x-shopify-shop']
+
+    if (!accessToken || !shop) {
+      return res.status(401).json({ error: 'Unauthorized: Missing token or shop domain' });
+    }
+
+    const results = [];
+
+    for (const product of products) {
+      try {
+        const response = await axios.post(
+          `https://${shop}/admin/api/2024-01/products.json`,
+          { product },
+          {
+            headers: {
+              'X-Shopify-Access-Token': accessToken,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        results.push({
+          status: 'success',
+          product: response.data.product,
+        });
+      } catch (err) {
+        results.push({
+          status: 'error',
+          message: err?.response?.data?.errors || err.message,
+          input: product.title || '[no-title]',
+        });
+      }
+    }
+
+    res.status(200).json({ uploaded: results.length, results });
+
+  } catch (error) {
+    console.error('❌ Upload Failed:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+module.exports = {addSelectedSceneWithProduct,getProductInformation, updateOptions,deleteProductMapping,getProductsToUploadOnShop}
