@@ -28,7 +28,7 @@ app.get('/product/get-product',getProductInformation);
 app.post('/product/updateOptions',updateOptions);
 app.get('/product/delete-product',deleteProductMapping);
 
-app.get('/product/uploadProducts',getProductsToUploadOnShop)
+app.post('/product/uploadProducts',getProductsToUploadOnShop)
 
 
 connectToDatabase()
