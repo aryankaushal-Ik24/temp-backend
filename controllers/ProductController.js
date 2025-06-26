@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
+const { default: axios } = require('axios');
 
 
 const addSelectedSceneWithProduct = async(req,res)=>{
