@@ -3,6 +3,7 @@ const express = require('express');
 const { connectToDatabase } = require('./DB/database');
 const { handleAuthCallback, getClientDetails, getTempData, getClientProducts } = require('./controllers/ClientController');
 const cors = require('cors');
+const cookieParser = require('cookie-parser')
 const { addSelectedSceneWithProduct, getProductInformation, updateOptions, deleteProductMapping, getProductsToUploadOnShop } = require('./controllers/ProductController');
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(cors({
   credentials: true 
 }));
 app.use(express.json())
+app.use(cookieParser())
 
 app.get('/',async(_,res)=>{
   return res.send('ok tested');
