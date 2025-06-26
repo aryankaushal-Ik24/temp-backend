@@ -126,6 +126,8 @@ const getProductsToUploadOnShop = async(req,res)=>{
 
     const results = [];
 
+    console.log("data coming",shop,accessToken,products);
+
     for (const product of products) {
       try {
         const response = await axios.post(
@@ -138,6 +140,7 @@ const getProductsToUploadOnShop = async(req,res)=>{
             },
           }
         );
+        console.log("hogya");
         results.push({
           status: 'success',
           product: response.data.product,
