@@ -63,6 +63,8 @@ const handleAuthCallback = async (req, res) => {
     return res.status(400).send('Missing code or shop parameter.');
   }
 
+  console.log("data 1",shop,code)
+
   const shopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`;
 
   try {
