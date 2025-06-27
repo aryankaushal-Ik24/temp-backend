@@ -57,72 +57,46 @@ const sessionStore = new Map();
 const { v4: uuidv4 } = require('uuid'); 
 
 const handleAuthCallback = async (req, res) => {
-  const { code, shop,state } = req.query;
+  const { code, shop, state } = req.query;
 
-  if (!shop || !code ) {
+  if (!shop || !code) {
     return res.status(400).send('Missing code or shop parameter.');
   }
 
   const shopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`;
 
   try {
-    let accessToken;
+    // Always get a new token — app install flow guarantees it's a fresh one
+    const tokenResponse = await axios.post(`https://${shopDomain}/admin/oauth/access_token`, {
+      client_id: API_KEY,
+      client_secret: API_SECRET,
+      code,
+    });
 
-    // Check if access token is already saved
-    const existingClient = await Client.findOne({ shopName: shopDomain });
-    if (existingClient?.accessToken) {
-      accessToken = existingClient.accessToken;
-    } else {
-      // Get access token from Shopify
-      const tokenResponse = await axios.post(`https://${shopDomain}/admin/oauth/access_token`, {
-        client_id: API_KEY,
-        client_secret: API_SECRET,
-        code,
-      });
-
-      if (!tokenResponse.data.access_token) {
-        return res.status(403).json({ success: false, message: 'Access token not received.' });
-      }
-
-      accessToken = tokenResponse.data.access_token;
-
-      // Save to DB (optional)
-      await Client.create({ shopName: shopDomain, accessToken });
+    const accessToken = tokenResponse.data.access_token;
+    if (!accessToken) {
+      return res.status(403).json({ success: false, message: 'Access token not received.' });
     }
 
-    // // Fetch products
-    // const productResponse = await axios.get(`https://${shopDomain}/admin/api/2024-01/products.json`, {
-    //   headers: {
-    //     'X-Shopify-Access-Token': accessToken,
-    //     'Content-Type': 'application/json',
-    //   },
-    // });
+    // Save/update token in DB
+    await Client.findOneAndUpdate(
+      { shopName: shopDomain },
+      { accessToken },
+      { upsert: true, new: true }
+    );
 
-    // const products = productResponse.data.products || [];
-
-    // const cleanedProducts = products.map(product => ({
-    // id: product.id,
-    // title: product.title,
-    // handle: product.handle,
-    // options: product.options,
-    // created_at:product.created_at,
-    // updated_at:product.updated_at
-
-    // }));
-
-    // return res.redirect(`${FRONTEND_URL}/authDone?shop=${shop}&data=${encodeURIComponent(JSON.stringify(cleanedProducts))}&state=${state}`);
+    // Redirect with token or just shop/state
     return res.redirect(`${FRONTEND_URL}/authDone?shop=${shop}&state=${state}&access_token=${accessToken}`);
-
-
   } catch (error) {
     console.error('Auth Callback Error:', error.response?.data || error.message);
     return res.status(500).json({
       success: false,
-      message: 'Failed to authenticate and fetch products',
+      message: 'Failed to authenticate and get access token',
       details: error.response?.data || error.message,
     });
   }
 };
+
 
 const getClientProducts = (req, res) => {
   const sessionId = req.cookies.session_id;
