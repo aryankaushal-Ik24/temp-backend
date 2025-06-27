@@ -117,9 +117,9 @@ const deleteProductMapping = async(req,res)=>{
 
 const getProductsToUploadOnShop = async(req,res)=>{
     try {
-    const products = req.body; // Expecting array of product objects
+    const {products,shopUrl} = req.body; // Expecting array of product objects
     const accessToken = req.headers.authorization?.split(' ')[1];; // Or: req.headers.authorization
-    const shop = 'aryan-ka-store008.myshopify.com' // Or: req.headers['x-shopify-shop']
+    const shop = shopUrl.includes('.myshopify.com') ? shopUrl : `${shopUrl}.myshopify.com`
 
     if (!accessToken || !shop) {
       return res.status(401).json({ error: 'Unauthorized: Missing token or shop domain' });
