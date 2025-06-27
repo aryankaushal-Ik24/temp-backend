@@ -127,7 +127,7 @@ const getProductsToUploadOnShop = async(req,res)=>{
 
     const results = [];
 
-    console.log("data coming",shop,accessToken,products);
+    // console.log("data coming",shop,accessToken,products);
 
     for (const product of products) {
       try {
