@@ -180,10 +180,10 @@ const updateProducts = async (req, res) => {
           }
         );
 
-        results.push({ success: true, product: response.data.product });
+        results.push({ status: 'success', product: response.data.product });
       } catch (err) {
         results.push({
-          success: false,
+          status: 'error',
           error: err.response?.data || err.message,
           product,
         });
