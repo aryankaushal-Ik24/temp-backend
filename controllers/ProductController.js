@@ -152,10 +152,9 @@ const updateProducts = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-    const shop = req.query.shop;
-    const products = req.body.products; // Expecting an array of product objects
+   const { products, shopUrl } = req.body;
 
-    if (!shop || !accessToken || !Array.isArray(products) || products.length === 0) {
+    if (!shopUrl || !accessToken || !Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ message: 'Missing shop, token, or products array' });
     }
 
@@ -168,7 +167,7 @@ const updateProducts = async (req, res) => {
         continue;
       }
 
-      const url = `https://${shop}/admin/api/2024-01/products/${product.id}.json`;
+      const url = `https://${shopUrl}/admin/api/2024-01/products/${product.id}.json`;
 
       try {
         const response = await axios.put(
