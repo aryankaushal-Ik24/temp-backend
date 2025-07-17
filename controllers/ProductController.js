@@ -152,18 +152,17 @@ const updateProducts = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-   const { products, shopUrl } = req.body;
+    const { shopUrl, products } = req.body; // Expecting an array of product objects
 
     if (!shopUrl || !accessToken || !Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ message: 'Missing shop, token, or products array' });
     }
 
-    const updatedProducts = [];
-    const failedUpdates = [];
+    const results = [];
 
     for (const product of products) {
       if (!product.id) {
-        failedUpdates.push({ product, error: 'Missing product ID' });
+        results.push({ success: false, error: 'Missing product ID', product });
         continue;
       }
 
@@ -180,24 +179,25 @@ const updateProducts = async (req, res) => {
             },
           }
         );
-        updatedProducts.push(response.data?.product);
+
+        results.push({ success: true, product: response.data.product });
       } catch (err) {
-        console.error(`Error updating product ID ${product.id}:`, err.response?.data || err.message);
-        failedUpdates.push({ productId: product.id, error: err.message });
+        results.push({
+          success: false,
+          error: err.response?.data || err.message,
+          product,
+        });
       }
     }
 
-    res.status(200).json({
-      message: 'Product update process completed',
-      updatedProducts,
-      failedUpdates,
-    });
+    return res.status(200).json({ uploaded: results.length, results });
 
   } catch (error) {
-    console.error('General error updating products:', error.message);
-    res.status(500).json({ message: 'Failed to update products', error: error.message });
+    console.error('Error in updateProducts:', error.message);
+    res.status(500).json({ message: 'Server error during product updates', error: error.message });
   }
 };
+
 
 const getProductsToUploadOnShop = async(req,res)=>{
     try {
@@ -225,7 +225,6 @@ const getProductsToUploadOnShop = async(req,res)=>{
             },
           }
         );
-        console.log("hogya");
         results.push({
           status: 'success',
           product: response.data.product,
