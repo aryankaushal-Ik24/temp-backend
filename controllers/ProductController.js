@@ -151,37 +151,52 @@ const getAllProducts = async (req, res) => {
 const updateProducts = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-
-    // Extract Bearer token
     const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
     const shop = req.query.shop;
-    const { updatedData } = req.body;
+    const products = req.body.products; // Expecting an array of product objects
 
-    if (!shop || !accessToken || !updatedData || !updatedData.id ) {
-      return res.status(400).json({ message: 'Missing shop, token, productId, or updatedData' });
+    if (!shop || !accessToken || !Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ message: 'Missing shop, token, or products array' });
     }
 
-    const url = `https://${shop}/admin/api/2024-01/products/${updatedData.id}.json`;
+    const updatedProducts = [];
+    const failedUpdates = [];
 
-    const response = await axios.put(
-      url,
-      { product: { id: updatedData.id, ...updatedData } },
-      {
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json',
-        },
+    for (const product of products) {
+      if (!product.id) {
+        failedUpdates.push({ product, error: 'Missing product ID' });
+        continue;
       }
-    );
+
+      const url = `https://${shop}/admin/api/2024-01/products/${product.id}.json`;
+
+      try {
+        const response = await axios.put(
+          url,
+          { product: { id: product.id, ...product } },
+          {
+            headers: {
+              'X-Shopify-Access-Token': accessToken,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        updatedProducts.push(response.data?.product);
+      } catch (err) {
+        console.error(`Error updating product ID ${product.id}:`, err.response?.data || err.message);
+        failedUpdates.push({ productId: product.id, error: err.message });
+      }
+    }
 
     res.status(200).json({
-      message: 'Product updated successfully',
-      product: response.data?.product,
+      message: 'Product update process completed',
+      updatedProducts,
+      failedUpdates,
     });
 
   } catch (error) {
-    console.error('Error updating product:', error.response?.data || error.message);
-    res.status(500).json({ message: 'Failed to update product', error: error.message });
+    console.error('General error updating products:', error.message);
+    res.status(500).json({ message: 'Failed to update products', error: error.message });
   }
 };
 
