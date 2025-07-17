@@ -161,26 +161,40 @@ const updateProducts = async (req, res) => {
     const results = [];
 
     for (const product of products) {
-      if (!product.id) {
-        results.push({ success: false, error: 'Missing product ID', product });
-        continue;
-      }
-
-      const url = `https://${shopUrl}/admin/api/2024-01/products/${product.id}.json`;
-
       try {
-        const response = await axios.put(
-          url,
-          { product: { id: product.id, ...product } },
-          {
-            headers: {
-              'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
+        let response;
 
-        results.push({ status: 'success', product: response.data.product });
+        if (!product.id) {
+          // Create new product (POST)
+          response = await axios.post(
+            `https://${shopUrl}/admin/api/2024-01/products.json`,
+            { product },
+            {
+              headers: {
+                'X-Shopify-Access-Token': accessToken,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          results.push({ status: 'success', product: response.data.product });
+
+        } else {
+          // Update existing product (PUT)
+          response = await axios.put(
+            `https://${shopUrl}/admin/api/2024-01/products/${product.id}.json`,
+            { product: { id: product.id, ...product } },
+            {
+              headers: {
+                'X-Shopify-Access-Token': accessToken,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          results.push({ status: 'success', product: response.data.product });
+        }
+
       } catch (err) {
         results.push({
           status: 'error',
@@ -197,6 +211,7 @@ const updateProducts = async (req, res) => {
     res.status(500).json({ message: 'Server error during product updates', error: error.message });
   }
 };
+
 
 
 const getProductsToUploadOnShop = async(req,res)=>{
