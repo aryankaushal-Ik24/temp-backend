@@ -117,12 +117,16 @@ const deleteProductMapping = async(req,res)=>{
 
 const getAllProducts = async (req, res) => {
   try {
-    const accessToken = req.cookies?.shopify_session;
-    console.log("access token",accessToken);
     const shop = req.query.shop;
+    const authHeader = req.headers.authorization;
+
+    // Extract Bearer token
+    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+
+    console.log("access token:", accessToken);
 
     if (!shop || !accessToken) {
-      return res.status(400).json({ message: 'Missing shop in query or access token in cookies' });
+      return res.status(400).json({ message: 'Missing shop in query or access token in headers' });
     }
 
     const url = `https://${shop}/admin/api/2024-01/products.json`;
@@ -143,6 +147,7 @@ const getAllProducts = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch products', error: error.message });
   }
 };
+
 
 
 const getProductsToUploadOnShop = async(req,res)=>{
