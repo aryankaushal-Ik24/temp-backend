@@ -150,7 +150,10 @@ const getAllProducts = async (req, res) => {
 
 const updateProducts = async (req, res) => {
   try {
-    const accessToken = req.cookies?.shopify_session;
+    const authHeader = req.headers.authorization;
+
+    // Extract Bearer token
+    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
     const shop = req.query.shop;
     const { updatedData } = req.body;
 
