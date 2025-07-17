@@ -4,7 +4,7 @@ const { connectToDatabase } = require('./DB/database');
 const { handleAuthCallback, getClientDetails, getTempData, getClientProducts } = require('./controllers/ClientController');
 const cors = require('cors');
 const cookieParser = require('cookie-parser')
-const { addSelectedSceneWithProduct, getProductInformation, updateOptions, deleteProductMapping, getProductsToUploadOnShop, getAllProducts } = require('./controllers/ProductController');
+const { addSelectedSceneWithProduct, getProductInformation, updateOptions, deleteProductMapping, getProductsToUploadOnShop, getAllProducts, updateProducts } = require('./controllers/ProductController');
 const app = express();
 
 app.use(cors({
@@ -31,6 +31,7 @@ app.post('/product/updateOptions',updateOptions);
 app.get('/product/delete-product',deleteProductMapping);
 
 app.post('/product/uploadProducts',getProductsToUploadOnShop)
+app.post('/product/updateProducts',updateProducts)
 app.get('/product/getAllProducts',getAllProducts);
 
 

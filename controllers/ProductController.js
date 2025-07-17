@@ -148,7 +148,39 @@ const getAllProducts = async (req, res) => {
   }
 };
 
+const updateProducts = async (req, res) => {
+  try {
+    const accessToken = req.cookies?.shopify_session;
+    const shop = req.query.shop;
+    const { updatedData } = req.body;
 
+    if (!shop || !accessToken || !updatedData || !updatedData.id ) {
+      return res.status(400).json({ message: 'Missing shop, token, productId, or updatedData' });
+    }
+
+    const url = `https://${shop}/admin/api/2024-01/products/${updatedData.id}.json`;
+
+    const response = await axios.put(
+      url,
+      { product: { id: updatedData.id, ...updatedData } },
+      {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    res.status(200).json({
+      message: 'Product updated successfully',
+      product: response.data?.product,
+    });
+
+  } catch (error) {
+    console.error('Error updating product:', error.response?.data || error.message);
+    res.status(500).json({ message: 'Failed to update product', error: error.message });
+  }
+};
 
 const getProductsToUploadOnShop = async(req,res)=>{
     try {
@@ -198,4 +230,4 @@ const getProductsToUploadOnShop = async(req,res)=>{
   }
 };
 
-module.exports = {addSelectedSceneWithProduct,getProductInformation, updateOptions,deleteProductMapping,getProductsToUploadOnShop,getAllProducts}
+module.exports = {addSelectedSceneWithProduct,getProductInformation, updateOptions,deleteProductMapping,getProductsToUploadOnShop,getAllProducts,updateProducts}
