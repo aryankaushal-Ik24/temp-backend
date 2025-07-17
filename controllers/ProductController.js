@@ -117,7 +117,7 @@ const deleteProductMapping = async(req,res)=>{
 
 const getAllProducts = async (req, res) => {
   try {
-    const accessToken = req.cookies?.shopify_token;
+    const accessToken = req.cookies?.shopify_session;
     console.log("access token",accessToken);
     const shop = req.query.shop;
 
