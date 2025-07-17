@@ -115,6 +115,36 @@ const deleteProductMapping = async(req,res)=>{
 }
 
 
+const getAllProducts = async (req, res) => {
+  try {
+    const accessToken = req.cookies?.shopify_token;
+    console.log("access token",accessToken);
+    const shop = req.query.shop;
+
+    if (!shop || !accessToken) {
+      return res.status(400).json({ message: 'Missing shop in query or access token in cookies' });
+    }
+
+    const url = `https://${shop}/admin/api/2024-01/products.json`;
+
+    const response = await axios.get(url, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    res.status(200).json({
+      message: 'Fetched products successfully',
+      products: response.data?.products || [],
+    });
+  } catch (error) {
+    console.error('Error fetching products:', error.response?.data || error.message);
+    res.status(500).json({ message: 'Failed to fetch products', error: error.message });
+  }
+};
+
+
 const getProductsToUploadOnShop = async(req,res)=>{
     try {
     const {products,shopUrl} = req.body; // Expecting array of product objects
@@ -163,4 +193,4 @@ const getProductsToUploadOnShop = async(req,res)=>{
   }
 };
 
-module.exports = {addSelectedSceneWithProduct,getProductInformation, updateOptions,deleteProductMapping,getProductsToUploadOnShop}
+module.exports = {addSelectedSceneWithProduct,getProductInformation, updateOptions,deleteProductMapping,getProductsToUploadOnShop,getAllProducts}
