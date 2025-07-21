@@ -306,16 +306,15 @@ const getProductsToUploadOnShop = async (req, res) => {
             price: v.price,
             compareAtPrice: v.compare_at_price,
             sku: v.sku,
-            inventoryQuantity: v.inventory_quantity,
             inventoryManagement: v.inventory_management.toUpperCase(),
             inventoryPolicy: v.inventory_policy.toUpperCase(),
             requiresShipping: v.requires_shipping,
             taxable: v.taxable,
             weight: v.weight,
             weightUnit: 'KILOGRAMS',
-            optionValues: [v.option1],
+            option1: [v.option1],
           })),
-          images: product.images,
+          // images: product.images,
         };
 
         const response = await axios.post(
