@@ -262,7 +262,6 @@ const updateProducts = async (req, res) => {
 // };
 
 
-const axios = require('axios');
 
 const getProductsToUploadOnShop = async (req, res) => {
   try {
