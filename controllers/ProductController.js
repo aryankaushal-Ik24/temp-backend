@@ -274,133 +274,78 @@ const getProductsToUploadOnShop = async (req, res) => {
     const results = [];
 
     for (const product of products) {
-      try {
-        const productCreateQuery = `
-          mutation productCreate($input: ProductInput!) {
-            productCreate(input: $input) {
-              product {
-                id
-                title
-              }
-              userErrors {
-                field
-                message
-              }
+    try {
+      const mutation = `
+        mutation productCreate($input: ProductInput!) {
+          productCreate(input: $input) {
+            product {
+              id
+              title
+              handle
+            }
+            userErrors {
+              field
+              message
             }
           }
-        `;
+        }
+      `;
 
-        const variables = {
-          input: {
-            title: product.title,
-            bodyHtml: product.bodyHtml || '',
-            vendor: product.vendor || 'Default Vendor',
-            productType: product.productType || 'Default Type',
-            options: product.options || ['Title']
-          }
-        };
+      const input = {
+        title: product.title,
+        bodyHtml: product.body_html,
+        vendor: product.vendor,
+        productType: product.product_type,
+        tags: product.tags,
+        handle: product.handle,
+        published: product.published,
+        options: product.options,
+        variants: product.variants.map(v => ({
+          option1: v.option1,
+          price: v.price,
+          compareAtPrice: v.compare_at_price,
+          sku: v.sku,
+          inventoryQuantity: v.inventory_quantity,
+          inventoryManagement: v.inventory_management,
+          inventoryPolicy: v.inventory_policy,
+          fulfillmentService: v.fulfillment_service,
+          requiresShipping: v.requires_shipping,
+          taxable: v.taxable,
+          weight: v.weight,
+          weightUnit: v.weight_unit,
+        })),
+        images: product.images,
+      };
 
-        const productCreateResponse = await axios.post(
-          `https://${shop}/admin/api/2024-07/graphql.json`,
-          {
-            query: productCreateQuery,
-            variables
+      const response = await axios.post(
+        `https://${shop}/admin/api/2024-04/graphql.json`,
+        {
+          query: mutation,
+          variables: { input },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': accessToken,
           },
-          {
-            headers: {
-              'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        const responseData = productCreateResponse.data;
-
-        // Check for top-level errors
-        if (responseData.errors) {
-          throw new Error(responseData.errors[0]?.message || 'GraphQL error');
         }
+      );
 
-        const createdProduct = responseData.data?.productCreate?.product;
-        const userErrors = responseData.data?.productCreate?.userErrors;
-
-        if (!createdProduct || userErrors?.length) {
-          throw new Error(userErrors?.[0]?.message || 'Unknown error creating product');
-        }
-
-        // Now create variants (if provided)
-        const variantResults = [];
-        if (product.variants && product.variants.length > 0) {
-          for (const variant of product.variants) {
-            const variantCreateQuery = `
-              mutation productVariantCreate($input: ProductVariantInput!) {
-                productVariantCreate(input: $input) {
-                  productVariant {
-                    id
-                    title
-                  }
-                  userErrors {
-                    field
-                    message
-                  }
-                }
-              }
-            `;
-
-            const variantVariables = {
-              input: {
-                productId: createdProduct.id,
-                price: variant.price,
-                sku: variant.sku,
-                option1: variant.option1
-              }
-            };
-
-            const variantCreateResponse = await axios.post(
-              `https://${shop}/admin/api/2024-07/graphql.json`,
-              {
-                query: variantCreateQuery,
-                variables: variantVariables
-              },
-              {
-                headers: {
-                  'X-Shopify-Access-Token': accessToken,
-                  'Content-Type': 'application/json'
-                }
-              }
-            );
-
-            const variantData = variantCreateResponse.data;
-            const variantUserErrors = variantData.data?.productVariantCreate?.userErrors;
-
-            if (variantData.errors || variantUserErrors?.length) {
-              variantResults.push({
-                status: 'error',
-                message: variantUserErrors?.[0]?.message || variantData.errors?.[0]?.message,
-                variant: variant.option1
-              });
-            } else {
-              variantResults.push({
-                status: 'success',
-                variant: variantData.data.productVariantCreate.productVariant
-              });
-            }
-          }
-        }
-
+      const result = response.data.data.productCreate;
+      if (result.userErrors.length > 0) {
+        console.error('Errors:', result.userErrors);
+      } else {
+        console.log(`✅ Product created: ${result.product.title}`);
         results.push({
           status: 'success',
-          product: createdProduct,
-          variants: variantResults
-        });
-      } catch (err) {
-        results.push({
-          status: 'error',
-          message: err?.message || 'Upload failed',
-          input: product.title || '[no-title]'
+          product: result.product,
         });
       }
+
+    } catch (err) {
+      console.error('❌ Failed to create product:', err.response?.data || err.message);
     }
+  }
 
     res.status(200).json({ uploaded: results.length, results });
   } catch (error) {
