@@ -323,20 +323,44 @@ const getProductsToUploadOnShop = async(req,res)=>{
           }
         );
 
-        const data = response.data.data.productCreate;
+        console.log("response data", response);
+        const { data: gqlData, errors: gqlErrors } = response.data;
 
-        if (data.userErrors.length > 0) {
+        if (gqlErrors && gqlErrors.length > 0) {
+          // These are GraphQL-level errors (e.g., invalid query syntax)
           results.push({
             status: "error",
-            message: data.userErrors.map((e) => e.message).join(", "),
+            message: gqlErrors.map(e => e.message).join(", "),
+            input: product.title || "[no-title]",
+          });
+          continue;
+        }
+
+        if (!gqlData?.productCreate) {
+          // Defensive fallback if productCreate is missing
+          results.push({
+            status: "error",
+            message: "Invalid response from Shopify: 'productCreate' missing",
+            input: product.title || "[no-title]",
+          });
+          continue;
+        }
+
+        const { product, userErrors } = gqlData.productCreate;
+
+        if (userErrors.length > 0) {
+          results.push({
+            status: "error",
+            message: userErrors.map(e => e.message).join(", "),
             input: product.title || "[no-title]",
           });
         } else {
           results.push({
             status: "success",
-            product: data.product,
+            product,
           });
         }
+
       } catch (err) {
         results.push({
           status: "error",
