@@ -212,8 +212,6 @@ const updateProducts = async (req, res) => {
   }
 };
 
-
-
 // const getProductsToUploadOnShop = async(req,res)=>{
 //     try {
 //     const {products,shopUrl} = req.body; // Expecting array of product objects
@@ -262,6 +260,38 @@ const updateProducts = async (req, res) => {
 // };
 
 
+const SHOPIFY_GRAPHQL_URL = (shop) => `https://${shop}/admin/api/2024-07/graphql.json`;
+
+const productCreateMutation = `
+  mutation productCreate($input: ProductInput!) {
+    productCreate(input: $input) {
+      product {
+        id
+        title
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const productVariantCreateMutation = `
+  mutation productVariantCreate($input: ProductVariantInput!) {
+    productVariantCreate(input: $input) {
+      productVariant {
+        id
+        title
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
 const getProductsToUploadOnShop = async (req, res) => {
   try {
     const { products, shopUrl } = req.body;
@@ -276,98 +306,94 @@ const getProductsToUploadOnShop = async (req, res) => {
 
     for (const product of products) {
       try {
-        const query = `
-          mutation productCreate($input: ProductInput!) {
-            productCreate(input: $input) {
-              product {
-                id
-                title
-                handle
-              }
-              userErrors {
-                field
-                message
-              }
-            }
-          }
-        `;
-
-        const variables = {
-          input: {
-            title: product.title,
-            handle: product.handle,
-            descriptionHtml: product.body_html,
-            vendor: product.vendor,
-            productType: product.product_type,
-            tags: product.tags?.split(',').map(tag => tag.trim()),
-            status: product.published ? "ACTIVE" : "DRAFT",
-            options: product.options?.map(opt => ({ name: opt.name })),
-            variants: product.variants?.map(variant => ({
-              option1: variant.option1,
-              price: variant.price,
-              compareAtPrice: variant.compare_at_price || null,
-              sku: variant.sku,
-              inventoryManagement: variant.inventory_management?.toUpperCase(),
-              inventoryPolicy: variant.inventory_policy?.toUpperCase(),
-              inventoryQuantity: variant.inventory_quantity,
-              requiresShipping: variant.requires_shipping,
-              taxable: variant.taxable,
-              weight: parseFloat(variant.weight || 0),
-              weightUnit: (variant.weight_unit || "KG").toUpperCase(),
-              fulfillmentService: variant.fulfillment_service
-            })),
-            images: product.images?.length
-              ? product.images.map(img => ({ src: img.src }))
-              : undefined
-          }
+        // Step 1: Create product
+        const productInput = {
+          title: product.title,
+          bodyHtml: product.body_html,
+          vendor: product.vendor,
+          productType: product.product_type,
+          tags: product.tags,
+          handle: product.handle,
+          options: product.options.map((opt) => opt.name)
         };
 
-        const response = await axios.post(
-          `https://${shop}/admin/api/2024-07/graphql.json`,
-          { query, variables },
+        const createProductResponse = await axios.post(
+          SHOPIFY_GRAPHQL_URL(shop),
+          {
+            query: productCreateMutation,
+            variables: { input: productInput }
+          },
           {
             headers: {
               'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json',
-            },
+              'Content-Type': 'application/json'
+            }
           }
         );
 
-        const topLevelErrors = response.data?.errors;
-        const productCreateData = response.data?.data?.productCreate;
+        const createdProduct = createProductResponse.data.data.productCreate.product;
+        const productErrors = createProductResponse.data.data.productCreate.userErrors;
 
-        if (topLevelErrors?.length) {
+        if (productErrors.length > 0) {
           results.push({
             status: 'error',
-            message: topLevelErrors.map(e => e.message).join(', '),
-            input: product.title || '[no-title]',
+            message: productErrors.map((e) => `${e.field}: ${e.message}`).join(', '),
+            input: product.title
           });
-        } else if (productCreateData?.userErrors?.length) {
-          results.push({
-            status: 'error',
-            message: productCreateData.userErrors
-              .map(err => `${err.field?.join('.') || 'field'}: ${err.message}`)
-              .join(', '),
-            input: product.title || '[no-title]',
-          });
-        } else if (productCreateData?.product) {
-          results.push({
-            status: 'success',
-            product: productCreateData.product,
-          });
-        } else {
-          results.push({
-            status: 'error',
-            message: 'Unexpected error: Missing productCreate data',
-            input: product.title || '[no-title]',
-          });
+          continue;
         }
+
+        // Step 2: Create variants
+        for (const variant of product.variants) {
+          const variantInput = {
+            productId: createdProduct.id,
+            price: variant.price,
+            sku: variant.sku,
+            option1: variant.option1,
+            inventoryQuantity: variant.inventory_quantity,
+            inventoryManagement: variant.inventory_management,
+            inventoryPolicy: variant.inventory_policy,
+            fulfillmentService: variant.fulfillment_service,
+            requiresShipping: variant.requires_shipping,
+            taxable: variant.taxable,
+            weight: parseFloat(variant.weight),
+            weightUnit: variant.weight_unit.toUpperCase()
+          };
+
+          const variantResponse = await axios.post(
+            SHOPIFY_GRAPHQL_URL(shop),
+            {
+              query: productVariantCreateMutation,
+              variables: { input: variantInput }
+            },
+            {
+              headers: {
+                'X-Shopify-Access-Token': accessToken,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          const variantErrors = variantResponse.data.data.productVariantCreate.userErrors;
+          if (variantErrors.length > 0) {
+            results.push({
+              status: 'error',
+              message: variantErrors.map((e) => `${e.field}: ${e.message}`).join(', '),
+              input: `${product.title} -> ${variant.sku}`
+            });
+          }
+        }
+
+        results.push({
+          status: 'success',
+          product: createdProduct
+        });
 
       } catch (err) {
         results.push({
           status: 'error',
           message: err?.response?.data?.errors || err.message,
-          input: product.title || '[no-title]',
+          input: product.title || '[no-title]'
         });
       }
     }
