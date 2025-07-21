@@ -214,11 +214,61 @@ const updateProducts = async (req, res) => {
 
 
 
-const getProductsToUploadOnShop = async(req,res)=>{
-    try {
-    const {products,shopUrl} = req.body; // Expecting array of product objects
-    const accessToken = req.headers.authorization?.split(' ')[1];; // Or: req.headers.authorization
-    const shop = shopUrl?.includes('.myshopify.com') ? shopUrl : `${shopUrl}.myshopify.com`
+// const getProductsToUploadOnShop = async(req,res)=>{
+//     try {
+//     const {products,shopUrl} = req.body; // Expecting array of product objects
+//     const accessToken = req.headers.authorization?.split(' ')[1];; // Or: req.headers.authorization
+//     const shop = shopUrl?.includes('.myshopify.com') ? shopUrl : `${shopUrl}.myshopify.com`
+
+//     if (!accessToken || !shop) {
+//       return res.status(401).json({ error: 'Unauthorized: Missing token or shop domain' });
+//     }
+
+//     const results = [];
+
+//     // console.log("data coming",shop,accessToken,products);
+
+//     for (const product of products) {
+//       try {
+//         console.log("product data",product);
+//         const response = await axios.post(
+//           `https://${shop}/admin/api/2024-01/products.json`,
+//           { product },
+//           {
+//             headers: {
+//               'X-Shopify-Access-Token': accessToken,
+//               'Content-Type': 'application/json',
+//             },
+//           }
+//         );
+//         results.push({
+//           status: 'success',
+//           product: response.data.product,
+//         });
+//       } catch (err) {
+//         results.push({
+//           status: 'error',
+//           message: err?.response?.data?.errors || err.message,
+//           input: product.title || '[no-title]',
+//         });
+//       }
+//     }
+//     res.status(200).json({ uploaded: results.length, results });
+
+//   } catch (error) {
+//     console.error('❌ Upload Failed:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// };
+
+
+const axios = require('axios');
+
+const getProductsToUploadOnShop = async (req, res) => {
+  try {
+    const { products, shopUrl } = req.body;
+    const accessToken = req.headers.authorization?.split(' ')[1];
+    const shop = shopUrl?.includes('.myshopify.com') ? shopUrl : `${shopUrl}.myshopify.com`;
 
     if (!accessToken || !shop) {
       return res.status(401).json({ error: 'Unauthorized: Missing token or shop domain' });
@@ -226,14 +276,57 @@ const getProductsToUploadOnShop = async(req,res)=>{
 
     const results = [];
 
-    // console.log("data coming",shop,accessToken,products);
-
     for (const product of products) {
       try {
-        console.log("product data",product);
+        const query = `
+          mutation productCreate($input: ProductInput!) {
+            productCreate(input: $input) {
+              product {
+                id
+                title
+                handle
+              }
+              userErrors {
+                field
+                message
+              }
+            }
+          }
+        `;
+
+        const variables = {
+          input: {
+            title: product.title,
+            handle: product.handle,
+            descriptionHtml: product.body_html,
+            vendor: product.vendor,
+            productType: product.product_type,
+            tags: product.tags?.split(',').map(tag => tag.trim()),
+            status: product.published ? "ACTIVE" : "DRAFT",
+            options: product.options?.map(opt => ({ name: opt.name })),
+            variants: product.variants?.map(variant => ({
+              option1: variant.option1,
+              price: variant.price,
+              compareAtPrice: variant.compare_at_price || null,
+              sku: variant.sku,
+              inventoryManagement: variant.inventory_management?.toUpperCase(), 
+              inventoryPolicy: variant.inventory_policy?.toUpperCase(),         
+              inventoryQuantity: variant.inventory_quantity,
+              requiresShipping: variant.requires_shipping,
+              taxable: variant.taxable,
+              weight: parseFloat(variant.weight || 0),
+              weightUnit: (variant.weight_unit || "KG").toUpperCase(),
+              fulfillmentService: variant.fulfillment_service
+            })),
+            images: product.images?.length
+              ? product.images.map(img => ({ src: img.src }))
+              : undefined
+          }
+        };
+
         const response = await axios.post(
-          `https://${shop}/admin/api/2024-01/products.json`,
-          { product },
+          `https://${shop}/admin/api/2024-07/graphql.json`,
+          { query, variables },
           {
             headers: {
               'X-Shopify-Access-Token': accessToken,
@@ -241,10 +334,21 @@ const getProductsToUploadOnShop = async(req,res)=>{
             },
           }
         );
-        results.push({
-          status: 'success',
-          product: response.data.product,
-        });
+
+        const data = response.data?.data?.productCreate;
+
+        if (data?.userErrors?.length) {
+          results.push({
+            status: 'error',
+            message: data.userErrors.map(err => `${err.field?.join('.') || 'field'}: ${err.message}`).join(', '),
+            input: product.title || '[no-title]',
+          });
+        } else {
+          results.push({
+            status: 'success',
+            product: data.product,
+          });
+        }
       } catch (err) {
         results.push({
           status: 'error',
@@ -253,13 +357,14 @@ const getProductsToUploadOnShop = async(req,res)=>{
         });
       }
     }
-    res.status(200).json({ uploaded: results.length, results });
 
+    res.status(200).json({ uploaded: results.length, results });
   } catch (error) {
     console.error('❌ Upload Failed:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 module.exports = {addSelectedSceneWithProduct,getProductInformation, updateOptions,deleteProductMapping,getProductsToUploadOnShop,getAllProducts,updateProducts}
 
