@@ -262,7 +262,6 @@ const updateProducts = async (req, res) => {
 // };
 
 
-
 const getProductsToUploadOnShop = async (req, res) => {
   try {
     const { products, shopUrl } = req.body;
@@ -308,8 +307,8 @@ const getProductsToUploadOnShop = async (req, res) => {
               price: variant.price,
               compareAtPrice: variant.compare_at_price || null,
               sku: variant.sku,
-              inventoryManagement: variant.inventory_management?.toUpperCase(), 
-              inventoryPolicy: variant.inventory_policy?.toUpperCase(),         
+              inventoryManagement: variant.inventory_management?.toUpperCase(),
+              inventoryPolicy: variant.inventory_policy?.toUpperCase(),
               inventoryQuantity: variant.inventory_quantity,
               requiresShipping: variant.requires_shipping,
               taxable: variant.taxable,
@@ -334,20 +333,36 @@ const getProductsToUploadOnShop = async (req, res) => {
           }
         );
 
-        const data = response.data?.data?.productCreate;
+        const topLevelErrors = response.data?.errors;
+        const productCreateData = response.data?.data?.productCreate;
 
-        if (data?.userErrors?.length) {
+        if (topLevelErrors?.length) {
           results.push({
             status: 'error',
-            message: data.userErrors.map(err => `${err.field?.join('.') || 'field'}: ${err.message}`).join(', '),
+            message: topLevelErrors.map(e => e.message).join(', '),
             input: product.title || '[no-title]',
+          });
+        } else if (productCreateData?.userErrors?.length) {
+          results.push({
+            status: 'error',
+            message: productCreateData.userErrors
+              .map(err => `${err.field?.join('.') || 'field'}: ${err.message}`)
+              .join(', '),
+            input: product.title || '[no-title]',
+          });
+        } else if (productCreateData?.product) {
+          results.push({
+            status: 'success',
+            product: productCreateData.product,
           });
         } else {
           results.push({
-            status: 'success',
-            product: data.product,
+            status: 'error',
+            message: 'Unexpected error: Missing productCreate data',
+            input: product.title || '[no-title]',
           });
         }
+
       } catch (err) {
         results.push({
           status: 'error',
@@ -363,6 +378,7 @@ const getProductsToUploadOnShop = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 
 module.exports = {addSelectedSceneWithProduct,getProductInformation, updateOptions,deleteProductMapping,getProductsToUploadOnShop,getAllProducts,updateProducts}
