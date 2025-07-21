@@ -88,7 +88,7 @@ const handleAuthCallback = async (req, res) => {
     );
 
     // Redirect with token or just shop/state
-    return res.redirect(`${FRONTEND_URL}/authDone?shop=${shop}&state=${state}&access_token=${accessToken}`);
+    return res.redirect(`${FRONTEND_URL}/authDone.html?shop=${shop}&state=${state}&access_token=${accessToken}`);
   } catch (error) {
     console.error('Auth Callback Error:', error.response?.data || error.message);
     return res.status(500).json({
