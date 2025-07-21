@@ -260,7 +260,6 @@ const updateProducts = async (req, res) => {
 // };
 
 
-
 const getProductsToUploadOnShop = async (req, res) => {
   try {
     const { products, shopUrl } = req.body;
@@ -291,92 +290,64 @@ const getProductsToUploadOnShop = async (req, res) => {
           }
         `;
 
-        const input = {
-          title: product.title,
-          bodyHtml: product.body_html,
-          vendor: product.vendor,
-          productType: product.product_type,
-          tags: product.tags,
-          handle: product.handle,
-          published: product.published,
-          // ✅ Corrected: options must be string names like ["Size", "Color"]
-          options: product.options?.map(option => option.name) || [],
-          // ✅ Corrected: use optionValues instead of option1, and removed deprecated fields
-          variants: product.variants.map(v => ({
-            selectedOptions: v.options?.map((name, i) => ({
-              name: product.options?.[i]?.name || `Option${i + 1}`,
-              value: name
-            })) || [],
-            price: v.price,
-            compareAtPrice: v.compare_at_price,
-            sku: v.sku,
-            inventoryManagement: v.inventory_management.toUpperCase(),
-            inventoryPolicy: v.inventory_policy.toUpperCase(),
-            requiresShipping: v.requires_shipping,
-            taxable: v.taxable,
-            weight: v.weight,
-            weightUnit: 'KILOGRAMS',
-          })),
-          // images: product.images,
+        const variables = {
+          input: {
+            title: product.title,
+            bodyHtml: product.body_html,
+            vendor: product.vendor,
+            productType: product.product_type,
+            tags: product.tags,
+            handle: product.handle,
+            published: product.published,
+            options: product.options?.map(opt => opt.name) || [],
+            variants: product.variants.map(v => ({
+              price: v.price,
+              sku: v.sku,
+              inventoryPolicy: v.inventory_policy,
+              inventoryManagement: v.inventory_management,
+              requiresShipping: v.requires_shipping,
+              taxable: v.taxable,
+              weight: v.weight,
+              weightUnit: 'KILOGRAMS',
+              // You CANNOT pass options like option1 directly
+              // Instead variants align automatically with options
+            })),
+            images: product.images?.map(img => ({ src: img.src })) || [],
+          },
         };
 
         const response = await axios.post(
-          `https://${shop}/admin/api/2024-04/graphql.json`,
-          {
-            query: mutation,
-            variables: { input },
-          },
+          `https://${shop}/admin/api/2025-01/graphql.json`,
+          { query: mutation, variables },
           {
             headers: {
-              'Content-Type': 'application/json',
               'X-Shopify-Access-Token': accessToken,
+              'Content-Type': 'application/json',
             },
           }
         );
 
-        const data = response.data;
+        const { data } = response.data;
+        const error = data?.productCreate?.userErrors?.[0];
 
-        if (data.errors) {
-          console.error('❌ GraphQL Error:', data.errors);
+        if (error) {
           results.push({
             status: 'error',
-            message: 'GraphQL error',
-            errors: data.errors,
-          });
-          continue;
-        }
-
-        const result = data.data?.productCreate;
-
-        if (!result) {
-          console.error('❌ Missing productCreate in response:', data);
-          results.push({
-            status: 'error',
-            message: 'productCreate missing in response',
-            response: data,
-          });
-          continue;
-        }
-
-        if (result.userErrors.length > 0) {
-          console.error('❌ User Errors:', result.userErrors);
-          results.push({
-            status: 'error',
-            errors: result.userErrors,
+            message: error.message,
+            field: error.field,
+            input: product.title || '[no-title]',
           });
         } else {
-          console.log(`✅ Product created: ${result.product.title}`);
           results.push({
             status: 'success',
-            product: result.product,
+            product: data.productCreate.product,
           });
         }
       } catch (err) {
-        console.error('❌ Exception:', err.response?.data || err.message);
         results.push({
           status: 'error',
-          message: 'Exception occurred',
-          error: err.response?.data || err.message,
+          message: err?.response?.data?.errors || err.message,
+          input: product.title || '[no-title]',
         });
       }
     }
