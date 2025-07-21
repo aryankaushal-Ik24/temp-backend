@@ -303,6 +303,10 @@ const getProductsToUploadOnShop = async (req, res) => {
           options: product.options?.map(option => option.name) || [],
           // ✅ Corrected: use optionValues instead of option1, and removed deprecated fields
           variants: product.variants.map(v => ({
+            selectedOptions: v.options?.map((name, i) => ({
+              name: product.options?.[i]?.name || `Option${i + 1}`,
+              value: name
+            })) || [],
             price: v.price,
             compareAtPrice: v.compare_at_price,
             sku: v.sku,
