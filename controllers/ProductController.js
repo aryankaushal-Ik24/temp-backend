@@ -129,7 +129,7 @@ const getAllProducts = async (req, res) => {
       return res.status(400).json({ message: 'Missing shop in query or access token in headers' });
     }
 
-    const url = `https://${shop}/admin/api/2024-01/products.json`;
+    const url = `https://${shop}/admin/api/2025-07/products.json`;
 
     const response = await axios.get(url, {
       headers: {
@@ -167,7 +167,7 @@ const updateProducts = async (req, res) => {
         if (!product.id) {
           // Create new product (POST)
           response = await axios.post(
-            `https://${shopUrl}/admin/api/2024-01/products.json`,
+            `https://${shopUrl}/admin/api/2025-07/products.json`,
             { product },
             {
               headers: {
@@ -182,7 +182,7 @@ const updateProducts = async (req, res) => {
         } else {
           // Update existing product (PUT)
           response = await axios.put(
-            `https://${shopUrl}/admin/api/2024-01/products/${product.id}.json`,
+            `https://${shopUrl}/admin/api/2025-07/products/${product.id}.json`,
             { product: { id: product.id, ...product } },
             {
               headers: {
