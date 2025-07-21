@@ -331,16 +331,20 @@ const getProductsToUploadOnShop = async (req, res) => {
         }
       );
 
-      const result = response.data.data.productCreate;
-      if (result.userErrors.length > 0) {
-        console.error('Errors:', result.userErrors);
-      } else {
-        console.log(`✅ Product created: ${result.product.title}`);
-        results.push({
+      const result = response;
+      results.push({
           status: 'success',
           product: result.product,
         });
-      }
+      // if (result.userErrors.length > 0) {
+      //   console.error('Errors:', result.userErrors);
+      // } else {
+      //   console.log(`✅ Product created: ${result.product.title}`);
+      //   results.push({
+      //     status: 'success',
+      //     product: result.product,
+      //   });
+      // }
 
     } catch (err) {
       console.error('❌ Failed to create product:', err.response?.data || err.message);
