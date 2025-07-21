@@ -312,7 +312,6 @@ const getProductsToUploadOnShop = async (req, res) => {
             taxable: v.taxable,
             weight: v.weight,
             weightUnit: 'KILOGRAMS',
-            option1: [v.option1],
           })),
           // images: product.images,
         };
