@@ -230,6 +230,7 @@ const getProductsToUploadOnShop = async(req,res)=>{
 
     for (const product of products) {
       try {
+        console.log("product data",product);
         const response = await axios.post(
           `https://${shop}/admin/api/2024-01/products.json`,
           { product },
