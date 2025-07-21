@@ -331,6 +331,7 @@ const getProductsToUploadOnShop = async (req, res) => {
             }
           }
         );
+        console.log("createProductResponse", createProductResponse);
 
         const createdProduct = createProductResponse.data.data.productCreate.product;
         const productErrors = createProductResponse.data.data.productCreate.userErrors;
