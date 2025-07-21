@@ -254,59 +254,52 @@ const getProductsToUploadOnShop = async(req,res)=>{
     //   }
     // }
 
-    for (const product of products) {
+    for (const inputProduct of products) {
       try {
         const mutation = `
-      mutation productCreate($input: ProductInput!) {
-        productCreate(input: $input) {
-          product {
-            id
-            title
-            handle
+          mutation productCreate($input: ProductInput!) {
+            productCreate(input: $input) {
+              product {
+                id
+                title
+                handle
+              }
+              userErrors {
+                field
+                message
+              }
+            }
           }
-          userErrors {
-            field
-            message
-          }
-        }
-      }
-    `;
+        `;
 
-        // Map your variant structure into Shopify GraphQL-compatible format
-        const variants = product.variants.map((variant) => ({
+        const variants = inputProduct.variants.map(variant => ({
           option1: variant.option1,
           price: variant.price,
           compareAtPrice: variant.compare_at_price,
           sku: variant.sku,
-          inventoryQuantities: [
-            {
-              availableQuantity: variant.inventory_quantity,
-              locationId: "<REPLACE_WITH_LOCATION_ID>",
-            },
-          ],
-          inventoryManagement: variant.inventory_management?.toUpperCase(), // 'SHOPIFY'
-          inventoryPolicy: variant.inventory_policy?.toUpperCase(), // 'DENY'
+          inventoryManagement: variant.inventory_management?.toUpperCase(),
+          inventoryPolicy: variant.inventory_policy?.toUpperCase(),
           fulfillmentService: variant.fulfillment_service,
           requiresShipping: variant.requires_shipping,
           taxable: variant.taxable,
           weight: parseFloat(variant.weight),
-          weightUnit: variant.weight_unit?.toUpperCase(), // 'KG'
+          weightUnit: variant.weight_unit?.toUpperCase(),
         }));
 
         const input = {
-          title: product.title,
-          bodyHtml: product.body_html,
-          vendor: product.vendor,
-          productType: product.product_type,
-          tags: product.tags,
-          handle: product.handle,
-          published: product.published,
-          options: product.options.map((opt) => ({
+          title: inputProduct.title,
+          bodyHtml: inputProduct.body_html,
+          vendor: inputProduct.vendor,
+          productType: inputProduct.product_type,
+          tags: inputProduct.tags,
+          handle: inputProduct.handle,
+          published: inputProduct.published,
+          options: inputProduct.options.map(opt => ({
             name: opt.name,
             values: opt.values,
           })),
           variants,
-          images: [],
+          images: [], // Add if needed
         };
 
         const response = await axios.post(
@@ -317,50 +310,46 @@ const getProductsToUploadOnShop = async(req,res)=>{
           },
           {
             headers: {
-              "X-Shopify-Access-Token": accessToken,
-              "Content-Type": "application/json",
+              'X-Shopify-Access-Token': accessToken,
+              'Content-Type': 'application/json',
             },
           }
         );
 
-        console.log("response data", response);
-        const { data: gqlData, errors: gqlErrors } = response.data;
+        const gql = response.data;
 
-        if (gqlErrors && gqlErrors.length > 0) {
-          // These are GraphQL-level errors (e.g., invalid query syntax)
+        if (gql.errors && gql.errors.length > 0) {
           results.push({
             status: "error",
-            message: gqlErrors.map(e => e.message).join(", "),
-            input: product.title || "[no-title]",
+            message: gql.errors.map(e => e.message).join(", "),
+            input: inputProduct.title || "[no-title]",
           });
           continue;
         }
 
-        if (!gqlData?.productCreate) {
-          // Defensive fallback if productCreate is missing
+        const { productCreate } = gql.data;
+
+        if (!productCreate) {
           results.push({
             status: "error",
-            message: "Invalid response from Shopify: 'productCreate' missing",
-            input: product.title || "[no-title]",
+            message: "Missing 'productCreate' in response",
+            input: inputProduct.title || "[no-title]",
           });
           continue;
         }
 
-        const { product, userErrors } = gqlData.productCreate;
-
-        if (userErrors.length > 0) {
+        if (productCreate.userErrors.length > 0) {
           results.push({
             status: "error",
-            message: userErrors.map(e => e.message).join(", "),
-            input: product.title || "[no-title]",
+            message: productCreate.userErrors.map(e => e.message).join(", "),
+            input: inputProduct.title || "[no-title]",
           });
         } else {
           results.push({
             status: "success",
-            product,
+            product: productCreate.product,
           });
         }
-
       } catch (err) {
         results.push({
           status: "error",
@@ -369,6 +358,7 @@ const getProductsToUploadOnShop = async(req,res)=>{
         });
       }
     }
+
 
     res.status(200).json({ uploaded: results.length, results });
 
