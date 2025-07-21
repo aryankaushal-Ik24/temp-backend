@@ -218,7 +218,7 @@ const getProductsToUploadOnShop = async(req,res)=>{
     try {
     const {products,shopUrl} = req.body; // Expecting array of product objects
     const accessToken = req.headers.authorization?.split(' ')[1];; // Or: req.headers.authorization
-    const shop = shopUrl.includes('.myshopify.com') ? shopUrl : `${shopUrl}.myshopify.com`
+    const shop = shopUrl?.includes('.myshopify.com') ? shopUrl : `${shopUrl}.myshopify.com`
 
     if (!accessToken || !shop) {
       return res.status(401).json({ error: 'Unauthorized: Missing token or shop domain' });
@@ -228,28 +228,120 @@ const getProductsToUploadOnShop = async(req,res)=>{
 
     // console.log("data coming",shop,accessToken,products);
 
+    // for (const product of products) {
+    //   try {
+    //     console.log("product data",product);
+    //     const response = await axios.post(
+    //       `https://${shop}/admin/api/2024-01/products.json`,
+    //       { product },
+    //       {
+    //         headers: {
+    //           'X-Shopify-Access-Token': accessToken,
+    //           'Content-Type': 'application/json',
+    //         },
+    //       }
+    //     );
+    //     results.push({
+    //       status: 'success',
+    //       product: response.data.product,
+    //     });
+    //   } catch (err) {
+    //     results.push({
+    //       status: 'error',
+    //       message: err?.response?.data?.errors || err.message,
+    //       input: product.title || '[no-title]',
+    //     });
+    //   }
+    // }
+
     for (const product of products) {
       try {
-        console.log("product data",product);
+        const mutation = `
+      mutation productCreate($input: ProductInput!) {
+        productCreate(input: $input) {
+          product {
+            id
+            title
+            handle
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+        // Map your variant structure into Shopify GraphQL-compatible format
+        const variants = product.variants.map((variant) => ({
+          option1: variant.option1,
+          price: variant.price,
+          compareAtPrice: variant.compare_at_price,
+          sku: variant.sku,
+          inventoryQuantities: [
+            {
+              availableQuantity: variant.inventory_quantity,
+              locationId: "<REPLACE_WITH_LOCATION_ID>",
+            },
+          ],
+          inventoryManagement: variant.inventory_management?.toUpperCase(), // 'SHOPIFY'
+          inventoryPolicy: variant.inventory_policy?.toUpperCase(), // 'DENY'
+          fulfillmentService: variant.fulfillment_service,
+          requiresShipping: variant.requires_shipping,
+          taxable: variant.taxable,
+          weight: parseFloat(variant.weight),
+          weightUnit: variant.weight_unit?.toUpperCase(), // 'KG'
+        }));
+
+        const input = {
+          title: product.title,
+          bodyHtml: product.body_html,
+          vendor: product.vendor,
+          productType: product.product_type,
+          tags: product.tags,
+          handle: product.handle,
+          published: product.published,
+          options: product.options.map((opt) => ({
+            name: opt.name,
+            values: opt.values,
+          })),
+          variants,
+          images: [],
+        };
+
         const response = await axios.post(
-          `https://${shop}/admin/api/2024-01/products.json`,
-          { product },
+          `https://${shop}/admin/api/2024-01/graphql.json`,
+          {
+            query: mutation,
+            variables: { input },
+          },
           {
             headers: {
-              'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json',
+              "X-Shopify-Access-Token": accessToken,
+              "Content-Type": "application/json",
             },
           }
         );
-        results.push({
-          status: 'success',
-          product: response.data.product,
-        });
+
+        const data = response.data.data.productCreate;
+
+        if (data.userErrors.length > 0) {
+          results.push({
+            status: "error",
+            message: data.userErrors.map((e) => e.message).join(", "),
+            input: product.title || "[no-title]",
+          });
+        } else {
+          results.push({
+            status: "success",
+            product: data.product,
+          });
+        }
       } catch (err) {
         results.push({
-          status: 'error',
+          status: "error",
           message: err?.response?.data?.errors || err.message,
-          input: product.title || '[no-title]',
+          input: product.title || "[no-title]",
         });
       }
     }
@@ -263,3 +355,6 @@ const getProductsToUploadOnShop = async(req,res)=>{
 };
 
 module.exports = {addSelectedSceneWithProduct,getProductInformation, updateOptions,deleteProductMapping,getProductsToUploadOnShop,getAllProducts,updateProducts}
+
+
+
