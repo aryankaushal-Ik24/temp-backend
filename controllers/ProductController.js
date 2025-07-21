@@ -260,6 +260,7 @@ const updateProducts = async (req, res) => {
 // };
 
 
+
 const SHOPIFY_GRAPHQL_URL = (shop) => `https://${shop}/admin/api/2024-07/graphql.json`;
 
 const productCreateMutation = `
