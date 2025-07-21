@@ -274,110 +274,110 @@ const getProductsToUploadOnShop = async (req, res) => {
     const results = [];
 
     for (const product of products) {
-    try {
-      const mutation = `
-        mutation productCreate($input: ProductInput!) {
-          productCreate(input: $input) {
-            product {
-              id
-              title
-              handle
-            }
-            userErrors {
-              field
-              message
+      try {
+        const mutation = `
+          mutation productCreate($input: ProductInput!) {
+            productCreate(input: $input) {
+              product {
+                id
+                title
+                handle
+              }
+              userErrors {
+                field
+                message
+              }
             }
           }
-        }
-      `;
+        `;
 
-      const input = {
-        title: product.title,
-        bodyHtml: product.body_html,
-        vendor: product.vendor,
-        productType: product.product_type,
-        tags: product.tags,
-        handle: product.handle,
-        published: product.published,
-        options: product.options,
-        variants: product.variants.map(v => ({
-          option1: v.option1,
-          price: v.price,
-          compareAtPrice: v.compare_at_price,
-          sku: v.sku,
-          inventoryQuantity: v.inventory_quantity,
-          inventoryManagement: v.inventory_management,
-          inventoryPolicy: v.inventory_policy,
-          fulfillmentService: v.fulfillment_service,
-          requiresShipping: v.requires_shipping,
-          taxable: v.taxable,
-          weight: v.weight,
-          weightUnit: v.weight_unit,
-        })),
-        images: product.images,
-      };
+        const input = {
+          title: product.title,
+          bodyHtml: product.body_html,
+          vendor: product.vendor,
+          productType: product.product_type,
+          tags: product.tags,
+          handle: product.handle,
+          published: product.published,
+          // ✅ Corrected: options must be string names like ["Size", "Color"]
+          options: product.options?.map(option => option.name) || [],
+          // ✅ Corrected: use optionValues instead of option1, and removed deprecated fields
+          variants: product.variants.map(v => ({
+            price: v.price,
+            compareAtPrice: v.compare_at_price,
+            sku: v.sku,
+            inventoryQuantity: v.inventory_quantity,
+            inventoryManagement: v.inventory_management,
+            inventoryPolicy: v.inventory_policy,
+            requiresShipping: v.requires_shipping,
+            taxable: v.taxable,
+            weight: v.weight,
+            weightUnit: v.weight_unit,
+            optionValues: [v.option1], // Assuming one level of variant
+          })),
+          images: product.images,
+        };
 
-      const response = await axios.post(
-        `https://${shop}/admin/api/2024-04/graphql.json`,
-        {
-          query: mutation,
-          variables: { input },
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': accessToken,
+        const response = await axios.post(
+          `https://${shop}/admin/api/2024-04/graphql.json`,
+          {
+            query: mutation,
+            variables: { input },
           },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Shopify-Access-Token': accessToken,
+            },
+          }
+        );
+
+        const data = response.data;
+
+        if (data.errors) {
+          console.error('❌ GraphQL Error:', data.errors);
+          results.push({
+            status: 'error',
+            message: 'GraphQL error',
+            errors: data.errors,
+          });
+          continue;
         }
-      );
 
-       const data = response.data;
+        const result = data.data?.productCreate;
 
-      if (data.errors) {
-        console.error('❌ GraphQL Error:', data.errors);
+        if (!result) {
+          console.error('❌ Missing productCreate in response:', data);
+          results.push({
+            status: 'error',
+            message: 'productCreate missing in response',
+            response: data,
+          });
+          continue;
+        }
+
+        if (result.userErrors.length > 0) {
+          console.error('❌ User Errors:', result.userErrors);
+          results.push({
+            status: 'error',
+            errors: result.userErrors,
+          });
+        } else {
+          console.log(`✅ Product created: ${result.product.title}`);
+          results.push({
+            status: 'success',
+            product: result.product,
+          });
+        }
+      } catch (err) {
+        console.error('❌ Exception:', err.response?.data || err.message);
         results.push({
           status: 'error',
-          message: 'GraphQL error',
-          errors: data.errors,
-        });
-        continue;
-      }
-
-      const result = data.data?.productCreate;
-
-      if (!result) {
-        console.error('❌ Missing productCreate in response:', data);
-        results.push({
-          status: 'error',
-          message: 'productCreate missing in response',
-          response: data,
-        });
-        continue;
-      }
-
-      if (result.userErrors.length > 0) {
-        console.error('❌ User Errors:', result.userErrors);
-        results.push({
-          status: 'error',
-          errors: result.userErrors,
-        });
-      } else {
-        console.log(`✅ Product created: ${result.product.title}`);
-        results.push({
-          status: 'success',
-          product: result.product,
+          message: 'Exception occurred',
+          error: err.response?.data || err.message,
         });
       }
-
-    } catch (err) {
-      console.error('❌ Exception:', err.response?.data || err.message);
-      results.push({
-        status: 'error',
-        message: 'Exception occurred',
-        error: err.response?.data || err.message,
-      });
     }
-  }
 
     res.status(200).json({ uploaded: results.length, results });
   } catch (error) {
@@ -385,6 +385,7 @@ const getProductsToUploadOnShop = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 
 
