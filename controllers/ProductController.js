@@ -273,17 +273,17 @@ const getProductsToUploadOnShop = async(req,res)=>{
         `;
 
         const variants = inputProduct.variants.map(variant => ({
-          option1: variant.option1,
+          options: [variant.option1],
           price: variant.price,
           compareAtPrice: variant.compare_at_price,
           sku: variant.sku,
           inventoryManagement: variant.inventory_management?.toUpperCase(),
           inventoryPolicy: variant.inventory_policy?.toUpperCase(),
-          fulfillmentService: variant.fulfillment_service,
           requiresShipping: variant.requires_shipping,
           taxable: variant.taxable,
           weight: parseFloat(variant.weight),
-          weightUnit: variant.weight_unit?.toUpperCase(),
+          weightUnit: "KILOGRAMS", // Convert from "kg"
+          // Remove: fulfillmentService
         }));
 
         const input = {
@@ -294,12 +294,8 @@ const getProductsToUploadOnShop = async(req,res)=>{
           tags: inputProduct.tags,
           handle: inputProduct.handle,
           published: inputProduct.published,
-          options: inputProduct.options.map(opt => ({
-            name: opt.name,
-            values: opt.values,
-          })),
-          variants,
-          images: [], // Add if needed
+          variants, // Valid variants now
+          // Remove: options and images
         };
 
         const response = await axios.post(
