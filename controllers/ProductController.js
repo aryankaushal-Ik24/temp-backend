@@ -228,82 +228,12 @@ const getProductsToUploadOnShop = async(req,res)=>{
 
     // console.log("data coming",shop,accessToken,products);
 
-    // for (const product of products) {
-    //   try {
-    //     console.log("product data",product);
-    //     const response = await axios.post(
-    //       `https://${shop}/admin/api/2024-01/products.json`,
-    //       { product },
-    //       {
-    //         headers: {
-    //           'X-Shopify-Access-Token': accessToken,
-    //           'Content-Type': 'application/json',
-    //         },
-    //       }
-    //     );
-    //     results.push({
-    //       status: 'success',
-    //       product: response.data.product,
-    //     });
-    //   } catch (err) {
-    //     results.push({
-    //       status: 'error',
-    //       message: err?.response?.data?.errors || err.message,
-    //       input: product.title || '[no-title]',
-    //     });
-    //   }
-    // }
-
-    for (const inputProduct of products) {
+    for (const product of products) {
       try {
-        const mutation = `
-          mutation productCreate($input: ProductInput!) {
-            productCreate(input: $input) {
-              product {
-                id
-                title
-                handle
-              }
-              userErrors {
-                field
-                message
-              }
-            }
-          }
-        `;
-
-        const variants = inputProduct.variants.map(variant => ({
-          options: [variant.option1],
-          price: variant.price,
-          compareAtPrice: variant.compare_at_price,
-          sku: variant.sku,
-          inventoryManagement: variant.inventory_management?.toUpperCase(),
-          inventoryPolicy: variant.inventory_policy?.toUpperCase(),
-          requiresShipping: variant.requires_shipping,
-          taxable: variant.taxable,
-          weight: parseFloat(variant.weight),
-          weightUnit: "KILOGRAMS", // Convert from "kg"
-          // Remove: fulfillmentService
-        }));
-
-        const input = {
-          title: inputProduct.title,
-          bodyHtml: inputProduct.body_html,
-          vendor: inputProduct.vendor,
-          productType: inputProduct.product_type,
-          tags: inputProduct.tags,
-          handle: inputProduct.handle,
-          published: inputProduct.published,
-          variants, // Valid variants now
-          // Remove: options and images
-        };
-
+        console.log("product data",product);
         const response = await axios.post(
-          `https://${shop}/admin/api/2024-01/graphql.json`,
-          {
-            query: mutation,
-            variables: { input },
-          },
+          `https://${shop}/admin/api/2024-01/products.json`,
+          { product },
           {
             headers: {
               'X-Shopify-Access-Token': accessToken,
@@ -311,51 +241,18 @@ const getProductsToUploadOnShop = async(req,res)=>{
             },
           }
         );
-        console.log("response ",response);
-        const gql = response.data;
-
-        if (gql.errors && gql.errors.length > 0) {
-          results.push({
-            status: "error",
-            message: gql.errors.map(e => e.message).join(", "),
-            input: inputProduct.title || "[no-title]",
-          });
-          continue;
-        }
-
-        const { productCreate } = gql.data;
-
-        if (!productCreate) {
-          results.push({
-            status: "error",
-            message: "Missing 'productCreate' in response",
-            input: inputProduct.title || "[no-title]",
-          });
-          continue;
-        }
-
-        if (productCreate.userErrors.length > 0) {
-          results.push({
-            status: "error",
-            message: productCreate.userErrors.map(e => e.message).join(", "),
-            input: inputProduct.title || "[no-title]",
-          });
-        } else {
-          results.push({
-            status: "success",
-            product: productCreate.product,
-          });
-        }
+        results.push({
+          status: 'success',
+          product: response.data.product,
+        });
       } catch (err) {
         results.push({
-          status: "error",
+          status: 'error',
           message: err?.response?.data?.errors || err.message,
-          input: product.title || "[no-title]",
+          input: product.title || '[no-title]',
         });
       }
     }
-
-
     res.status(200).json({ uploaded: results.length, results });
 
   } catch (error) {
