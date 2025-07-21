@@ -307,13 +307,13 @@ const getProductsToUploadOnShop = async (req, res) => {
             compareAtPrice: v.compare_at_price,
             sku: v.sku,
             inventoryQuantity: v.inventory_quantity,
-            inventoryManagement: v.inventory_management,
-            inventoryPolicy: v.inventory_policy,
+            inventoryManagement: v.inventory_management.toUpperCase(),
+            inventoryPolicy: v.inventory_policy.toUpperCase(),
             requiresShipping: v.requires_shipping,
             taxable: v.taxable,
             weight: v.weight,
-            weightUnit: v.weight_unit,
-            optionValues: [v.option1], // Assuming one level of variant
+            weightUnit: 'KILOGRAMS',
+            optionValues: [v.option1],
           })),
           images: product.images,
         };
