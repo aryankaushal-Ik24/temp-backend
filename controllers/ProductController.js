@@ -331,23 +331,51 @@ const getProductsToUploadOnShop = async (req, res) => {
         }
       );
 
-      const result = response;
-      results.push({
+       const data = response.data;
+
+      if (data.errors) {
+        console.error('❌ GraphQL Error:', data.errors);
+        results.push({
+          status: 'error',
+          message: 'GraphQL error',
+          errors: data.errors,
+        });
+        continue;
+      }
+
+      const result = data.data?.productCreate;
+
+      if (!result) {
+        console.error('❌ Missing productCreate in response:', data);
+        results.push({
+          status: 'error',
+          message: 'productCreate missing in response',
+          response: data,
+        });
+        continue;
+      }
+
+      if (result.userErrors.length > 0) {
+        console.error('❌ User Errors:', result.userErrors);
+        results.push({
+          status: 'error',
+          errors: result.userErrors,
+        });
+      } else {
+        console.log(`✅ Product created: ${result.product.title}`);
+        results.push({
           status: 'success',
           product: result.product,
         });
-      // if (result.userErrors.length > 0) {
-      //   console.error('Errors:', result.userErrors);
-      // } else {
-      //   console.log(`✅ Product created: ${result.product.title}`);
-      //   results.push({
-      //     status: 'success',
-      //     product: result.product,
-      //   });
-      // }
+      }
 
     } catch (err) {
-      console.error('❌ Failed to create product:', err.response?.data || err.message);
+      console.error('❌ Exception:', err.response?.data || err.message);
+      results.push({
+        status: 'error',
+        message: 'Exception occurred',
+        error: err.response?.data || err.message,
+      });
     }
   }
 
