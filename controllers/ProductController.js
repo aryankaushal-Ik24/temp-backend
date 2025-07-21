@@ -261,38 +261,6 @@ const updateProducts = async (req, res) => {
 
 
 
-const SHOPIFY_GRAPHQL_URL = (shop) => `https://${shop}/admin/api/2024-07/graphql.json`;
-
-const productCreateMutation = `
-  mutation productCreate($input: ProductInput!) {
-    productCreate(input: $input) {
-      product {
-        id
-        title
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
-
-const productVariantCreateMutation = `
-  mutation productVariantCreate($input: ProductVariantInput!) {
-    productVariantCreate(input: $input) {
-      productVariant {
-        id
-        title
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
-
 const getProductsToUploadOnShop = async (req, res) => {
   try {
     const { products, shopUrl } = req.body;
@@ -307,22 +275,36 @@ const getProductsToUploadOnShop = async (req, res) => {
 
     for (const product of products) {
       try {
-        // Step 1: Create product
-        const productInput = {
-          title: product.title,
-          bodyHtml: product.body_html,
-          vendor: product.vendor,
-          productType: product.product_type,
-          tags: product.tags,
-          handle: product.handle,
-          options: product.options.map((opt) => opt.name)
+        const productCreateQuery = `
+          mutation productCreate($input: ProductInput!) {
+            productCreate(input: $input) {
+              product {
+                id
+                title
+              }
+              userErrors {
+                field
+                message
+              }
+            }
+          }
+        `;
+
+        const variables = {
+          input: {
+            title: product.title,
+            bodyHtml: product.bodyHtml || '',
+            vendor: product.vendor || 'Default Vendor',
+            productType: product.productType || 'Default Type',
+            options: product.options || ['Title']
+          }
         };
 
-        const createProductResponse = await axios.post(
-          SHOPIFY_GRAPHQL_URL(shop),
+        const productCreateResponse = await axios.post(
+          `https://${shop}/admin/api/2024-07/graphql.json`,
           {
-            query: productCreateMutation,
-            variables: { input: productInput }
+            query: productCreateQuery,
+            variables
           },
           {
             headers: {
@@ -331,70 +313,90 @@ const getProductsToUploadOnShop = async (req, res) => {
             }
           }
         );
-        console.log("createProductResponse", createProductResponse);
 
-        const createdProduct = createProductResponse.data.data.productCreate.product;
-        const productErrors = createProductResponse.data.data.productCreate.userErrors;
+        const responseData = productCreateResponse.data;
 
-        if (productErrors.length > 0) {
-          results.push({
-            status: 'error',
-            message: productErrors.map((e) => `${e.field}: ${e.message}`).join(', '),
-            input: product.title
-          });
-          continue;
+        // Check for top-level errors
+        if (responseData.errors) {
+          throw new Error(responseData.errors[0]?.message || 'GraphQL error');
         }
 
-        // Step 2: Create variants
-        for (const variant of product.variants) {
-          const variantInput = {
-            productId: createdProduct.id,
-            price: variant.price,
-            sku: variant.sku,
-            option1: variant.option1,
-            inventoryQuantity: variant.inventory_quantity,
-            inventoryManagement: variant.inventory_management,
-            inventoryPolicy: variant.inventory_policy,
-            fulfillmentService: variant.fulfillment_service,
-            requiresShipping: variant.requires_shipping,
-            taxable: variant.taxable,
-            weight: parseFloat(variant.weight),
-            weightUnit: variant.weight_unit.toUpperCase()
-          };
+        const createdProduct = responseData.data?.productCreate?.product;
+        const userErrors = responseData.data?.productCreate?.userErrors;
 
-          const variantResponse = await axios.post(
-            SHOPIFY_GRAPHQL_URL(shop),
-            {
-              query: productVariantCreateMutation,
-              variables: { input: variantInput }
-            },
-            {
-              headers: {
-                'X-Shopify-Access-Token': accessToken,
-                'Content-Type': 'application/json'
+        if (!createdProduct || userErrors?.length) {
+          throw new Error(userErrors?.[0]?.message || 'Unknown error creating product');
+        }
+
+        // Now create variants (if provided)
+        const variantResults = [];
+        if (product.variants && product.variants.length > 0) {
+          for (const variant of product.variants) {
+            const variantCreateQuery = `
+              mutation productVariantCreate($input: ProductVariantInput!) {
+                productVariantCreate(input: $input) {
+                  productVariant {
+                    id
+                    title
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
+                }
               }
-            }
-          );
+            `;
 
-          const variantErrors = variantResponse.data.data.productVariantCreate.userErrors;
-          if (variantErrors.length > 0) {
-            results.push({
-              status: 'error',
-              message: variantErrors.map((e) => `${e.field}: ${e.message}`).join(', '),
-              input: `${product.title} -> ${variant.sku}`
-            });
+            const variantVariables = {
+              input: {
+                productId: createdProduct.id,
+                price: variant.price,
+                sku: variant.sku,
+                option1: variant.option1
+              }
+            };
+
+            const variantCreateResponse = await axios.post(
+              `https://${shop}/admin/api/2024-07/graphql.json`,
+              {
+                query: variantCreateQuery,
+                variables: variantVariables
+              },
+              {
+                headers: {
+                  'X-Shopify-Access-Token': accessToken,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+
+            const variantData = variantCreateResponse.data;
+            const variantUserErrors = variantData.data?.productVariantCreate?.userErrors;
+
+            if (variantData.errors || variantUserErrors?.length) {
+              variantResults.push({
+                status: 'error',
+                message: variantUserErrors?.[0]?.message || variantData.errors?.[0]?.message,
+                variant: variant.option1
+              });
+            } else {
+              variantResults.push({
+                status: 'success',
+                variant: variantData.data.productVariantCreate.productVariant
+              });
+            }
           }
         }
 
         results.push({
           status: 'success',
-          product: createdProduct
+          product: createdProduct,
+          variants: variantResults
         });
-
       } catch (err) {
         results.push({
           status: 'error',
-          message: err?.response?.data?.errors || err.message,
+          message: err?.message || 'Upload failed',
           input: product.title || '[no-title]'
         });
       }
