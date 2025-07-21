@@ -315,7 +315,7 @@ const getProductsToUploadOnShop = async(req,res)=>{
             },
           }
         );
-
+        console.log("response ",response);
         const gql = response.data;
 
         if (gql.errors && gql.errors.length > 0) {
