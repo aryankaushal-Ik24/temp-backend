@@ -1,0 +1,5 @@
+Client:
+  - "controllers/clientController.js"
+
+Product:
+  - "controllers/productController.js"

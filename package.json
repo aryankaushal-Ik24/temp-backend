@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon -r dotenv/config index.js",
-    "build": "echo 'No build step for backend.'"
+    "build": "echo 'No build step for backend.'",
+    "lint" : "eslint . --ext .js,.ts"
   },
   "author": "",
   "license": "ISC",
@@ -20,6 +21,9 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.35.0",
+    "eslint": "^9.35.0",
+    "globals": "^16.3.0",
     "nodemon": "^3.1.10"
   }
 }
