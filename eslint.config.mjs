@@ -14,7 +14,7 @@ export default defineConfig([
       },
     },
      rules: {
-      "no-console": ["warn", { allow: ["warn", "error"] }]
+      "no-console": ["error", { allow: ["warn", "error"] }]
     }
   },
   {
