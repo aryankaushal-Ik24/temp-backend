@@ -54,7 +54,6 @@ const FRONTEND_URL = process.env.FRONTEND_URL
 
 
 const sessionStore = new Map();
-const { v4: uuidv4 } = require('uuid'); 
 
 const handleAuthCallback = async (req, res) => {
   const { code, shop, state } = req.query;
