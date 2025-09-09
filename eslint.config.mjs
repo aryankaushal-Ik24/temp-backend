@@ -13,6 +13,9 @@ export default defineConfig([
         ...globals.es2021,  // Modern JS globals (Promise, Map, etc.)
       },
     },
+     rules: {
+      "no-console": ["error", { allow: ["warn", "error"] }]
+    }
   },
   {
     files: ["**/*.js"],
