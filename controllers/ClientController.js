@@ -59,6 +59,7 @@ const handleAuthCallback = async (req, res) => {
   const { code, shop, state } = req.query;
 
   if (!shop || !code) {
+    console.log("worng statement");
     return res.status(400).send('Missing code or shop parameter.');
   }
 
