@@ -15,6 +15,7 @@ const addSelectedSceneWithProduct = async(req,res)=>{
             success:false,
             message:"product already added kindly just map the variations"
         })
+        console.log("checking exist",checkExisting);
         const addProduct = new Product({
             orgId: orgId,
             directoryId: directoryId,
